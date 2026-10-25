@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 
 import '../services/inventory_api.dart';
 import 'masters_page.dart';
+import 'stock_card_page.dart';
 
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key, this.client});
@@ -18,6 +19,7 @@ class _InventoryPageState extends State<InventoryPage> {
   int _page = 1, _total = 0;
   bool _loading = true;
   String? _error;
+  String _search = '';
 
   @override
   void initState() {
@@ -65,7 +67,7 @@ class _InventoryPageState extends State<InventoryPage> {
       }
       if (_warehouse != null) {
         final response = await _get(
-          '/stocks?warehouse_id=$_warehouse&page=$_page',
+          '/stocks?warehouse_id=$_warehouse&page=$_page&search=${Uri.encodeQueryComponent(_search)}',
         );
         _stocks = (response['data'] as List).cast<Map<String, dynamic>>();
         _total = response['meta']['total'] as int;
@@ -137,6 +139,18 @@ class _InventoryPageState extends State<InventoryPage> {
                   },
           ),
         const SizedBox(height: 20),
+        TextField(
+          decoration: const InputDecoration(
+            labelText: 'Cari kode atau nama',
+            suffixIcon: Icon(Icons.search),
+          ),
+          onSubmitted: (value) {
+            _search = value.trim();
+            _page = 1;
+            _load();
+          },
+        ),
+        const SizedBox(height: 16),
         if (_loading)
           const Center(child: CircularProgressIndicator())
         else if (_error != null) ...[
@@ -170,6 +184,20 @@ class _InventoryPageState extends State<InventoryPage> {
                             ?.copyWith(
                               color: Theme.of(context).colorScheme.primary,
                             ),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.push<void>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => StockCardPage(
+                              api: _api,
+                              warehouseId: _warehouse!,
+                              itemId: stock['item_id'] as int,
+                              title: '${stock['name']} (${stock['unit']})',
+                            ),
+                          ),
+                        ),
+                        child: const Text('Kartu stok'),
                       ),
                     ],
                   ),

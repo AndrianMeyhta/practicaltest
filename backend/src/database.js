@@ -1,11 +1,15 @@
 import mysql from 'mysql2/promise';
 import { masterStore } from './master-store.js';
+import { stockService } from './stock-service.js';
+import { stockHistory } from './stock-history.js';
 
 export function createDatabase(config) {
   const pool = mysql.createPool(config);
   const items = masterStore(pool, 'items');
   const warehouses = masterStore(pool, 'warehouses');
   return {
+    transactions: stockService(pool),
+    history: stockHistory(pool),
     items, warehouses,
     listWarehouses: warehouses.list,
     async listStocks({ warehouseId, page, limit, search }) {

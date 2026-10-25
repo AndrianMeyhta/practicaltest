@@ -8,6 +8,7 @@ import { insertOpeningStock } from '../src/opening-stock.js';
 import { createDatabase } from '../src/database.js';
 import { createApp } from '../src/app.js';
 import { verifyMasters } from './verify-masters.js';
+import { verifyTransactions } from './verify-transactions.js';
 
 // Hanya database sementara yang dibuat oleh proses ini yang dihapus.
 const config = readDatabaseConfig();
@@ -67,6 +68,7 @@ try {
   assert.deepEqual(main.data.map((row) => row.quantity), [25,40,12]);
   assert.equal((await fetch(`${url}/stocks?warehouse_id=999`)).status, 404);
   assert.equal((await fetch(`${url}/stocks?warehouse_id=1&limit=101`)).status, 400);
+  await verifyTransactions(url, connection);
   await verifyMasters({ url, connection, config: { ...config, database: name }, database });
   console.log('MySQL: migration ulang, seed ulang, constraint, rollback, rekonsiliasi, dan HTTP API lulus.');
 } finally {

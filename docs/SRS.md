@@ -3,7 +3,7 @@
 
 | Atribut | Keterangan |
 |---|---|
-| Versi | 1.2 |
+| Versi | 1.3 |
 | Status | Baseline kebutuhan sebelum implementasi |
 | Studi kasus | Nomor 2 — Mutasi Stok Antar Gudang |
 | Platform utama | Flutter untuk Android |
@@ -16,6 +16,25 @@
 
 
 ## 1. Tujuan dan dasar kebutuhan
+
+### Revisi 1.3 — navigasi, dashboard, dan balancing
+
+Ketentuan revisi ini mengungguli pembatasan versi sebelumnya mengenai penyesuaian stok dan dashboard. Persetujuan lingkup tidak berarti fitur telah diimplementasikan atau diuji.
+
+- Nama aplikasi pada sidebar: **mutasi stock**. Sidebar kiri dapat dibuka dengan swipe dari tepi kiri ke kanan dan tombol menu; tersedia Dashboard, Mutasi, Master, dan Pengaturan.
+- Dashboard menampilkan ringkasan persediaan dan aktivitas terbaru. Jumlah batang dan pcs tidak dijumlahkan menjadi satu total quantity.
+- Mutasi menyediakan stok awal, transfer multi-item, balancing, riwayat terpaginasi, serta detail dokumen. Aktivitas dashboard dan riwayat mengacu pada dokumen yang sama.
+- Master menyediakan CRUD barang dan gudang. Pengaturan menempatkan pemeriksaan backend dan database melalui API; Flutter tidak menyimpan kredensial atau membuka koneksi MySQL langsung.
+- Balancing adalah penyesuaian satu barang pada satu gudang aktif: tambah atau kurang sejumlah integer 1–1.000.000, bukan penggantian saldo akhir. Keterangan wajib 1–500 karakter setelah trim.
+- Balancing tambah dicatat sebagai `ADJUSTMENT_IN`, balancing kurang sebagai `ADJUSTMENT_OUT`. Penyesuaian masuk bukan stok awal. Reject yang dikeluarkan dari persediaan merupakan penyesuaian keluar; perpindahan ke gudang reject tetap transfer jika barang masih menjadi persediaan.
+- Preview menampilkan saldo sebelum, perubahan, dan setelah. Pengurangan tidak boleh menghasilkan saldo negatif; penambahan tidak boleh melampaui kapasitas integer saldo. Preview bukan reservasi; backend memeriksa ulang saat commit.
+- Dokumen balancing, saldo, dan pergerakan disimpan atomik. Gunakan idempotency key dan fingerprint payload; retry identik mengembalikan dokumen sama, payload berbeda ditolak. Dokumen sukses tidak dapat diubah/dihapus; koreksi melalui dokumen baru dengan alasan.
+- Master dengan referensi balancing tidak dapat dihapus permanen. Histori tetap terbaca saat master nonaktif. Balancing yang sudah mencatat pergerakan menutup kemungkinan stok awal pada pasangan yang sama.
+- Lock penulis stok konsisten: gudang berdasarkan ID naik, barang berdasarkan ID naik, lalu saldo pasangan berdasarkan gudang/barang. Seluruh perubahan multi-item berhasil bersama atau rollback bersama.
+- Dashboard, riwayat gabungan, detail transaksi, dan kartu stok mencakup stok awal, transfer, serta balancing. Kartu stok memakai urutan pergerakan yang stabil dan saldo tersimpan, bukan penjumlahan halaman aktif.
+- Verifikasi tambahan: balancing tambah/kurang, alasan kosong, stok negatif, overflow, retry identik/berbeda, rollback, proteksi histori, dan konkurensi dengan transfer serta perubahan master pada database terisolasi. Uji drawer, form, preview basi, hasil tulis belum diketahui, layar kecil/teks besar, build APK, dan alur tulis emulator.
+
+Fitur balancing tidak menambahkan pembelian, penerimaan supplier, pemotongan profil, produksi, atau konversi satuan. Aplikasi tetap demo lokal tanpa autentikasi; penyesuaian belum memiliki alur persetujuan pengguna.
 
 Dokumen ini menjadi acuan implementasi, pengujian, demonstrasi, dan penentuan batas lingkup aplikasi. Dokumen ini bukan pernyataan bahwa fitur sudah diimplementasikan atau diuji.
 

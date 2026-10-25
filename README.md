@@ -4,7 +4,7 @@ Aplikasi Android untuk pencatatan perpindahan profil dan aksesori UPVC antar gud
 
 ## Status
 
-Express menyediakan koneksi MySQL, migration, seed UPVC, API saldo, dan CRUD master barang/gudang. Flutter menyediakan daftar, tambah, ubah nama/status, dan hapus bersyarat master, serta stok per gudang. Input stok awal melalui UI, mutasi, dan kartu stok belum diimplementasikan.
+Express menyediakan koneksi MySQL, migration, seed UPVC, CRUD master, stok awal, transfer multi-item, balancing, preview, riwayat, dashboard, dan kartu stok. Flutter menyediakan navigasi sidebar Dashboard/Mutasi/Master/Pengaturan dan layar fitur tersebut. Implementasi transaksi sudah diuji melalui HTTP dan MySQL terisolasi; verifikasi tulis penuh melalui emulator dan penyempurnaan tampilan masih diperlukan.
 
 ## Environment terverifikasi
 
@@ -116,7 +116,32 @@ ID emulator disesuaikan dengan hasil `flutter devices`. Untuk perangkat USB, gun
 - MySQL nyata: migration, seed, serta pengujian database terisolasi lulus.
 - APK dipasang dan dijalankan di emulator Android. Health menunjukkan backend dan MySQL terhubung. Layar stok menampilkan data nyata Utama: 25 batang profil, 40 pcs engsel, dan 12 pcs handle.
 - Verifikasi tahap master: APK debug dipasang pada emulator `emulator-5554`; status menunjukkan backend/MySQL terhubung, daftar barang menampilkan tiga SKU nyata, dan daftar gudang menampilkan Utama, Cabang, serta Baru. Alur tulis CRUD pada emulator belum diverifikasi penuh; pengujian HTTP memakai MySQL terisolasi dan pengujian widget memakai mock HTTP.
-- Mutasi dan kartu stok belum tersedia. Konkurensi master dengan helper stok awal diuji; konkurensi dengan service mutasi belum tersedia.
+- Hasil tahap transaksi dijelaskan pada bagian berikut; hasil tahap master di atas merupakan catatan verifikasi sebelumnya.
+
+## Transaksi stok dan navigasi (SRS 1.3)
+
+- Sidebar kiri bernama `mutasi stock`, dibuka melalui tombol menu atau swipe dari tepi kiri. Cek koneksi dipindahkan ke Pengaturan.
+- `POST /api/v1/opening-stocks`: `warehouse_id`, `item_id`, `quantity`, `notes` opsional.
+- `POST /api/v1/transfers`: `source_warehouse_id`, `destination_warehouse_id`, `items` berisi 1–50 objek `item_id`/`quantity`, dan `notes` opsional.
+- `POST /api/v1/adjustments`: `warehouse_id`, `item_id`, `quantity`, `direction` (`IN`/`OUT`), serta `notes` wajib. Balancing adalah selisih tambah/kurang, bukan saldo akhir.
+- Masing-masing resource memiliki `POST /preview` tanpa penulisan saldo dan `GET /:id` untuk bukti. POST simpan wajib header UUID `Idempotency-Key`; sukses pertama 201, replay identik 200, payload berbeda dengan key sama 409 `IDEMPOTENCY_CONFLICT`.
+- `GET /api/v1/history?page=1&limit=20&kind=transfers` menyediakan riwayat gabungan; filter kind opsional.
+- `GET /api/v1/stock-card?warehouse_id=1&item_id=1&page=1` menampilkan pergerakan terbaru dahulu dan saldo terkini terpisah dari pagination.
+- `GET /api/v1/dashboard` menyediakan jumlah master aktif dan saldo dikelompokkan menurut satuan.
+
+Migration `003_adjustments.sql` menambahkan dokumen penyesuaian dan sumber pergerakan dengan FK RESTRICT. Jalankan `npm run db:migrate` sebelum server versi baru. Tidak diperlukan seed ulang. Migration telah diuji pada database terisolasi dan diterapkan ke database lokal tanpa reset.
+
+Penulis stok mengambil lock gudang berurutan, barang berurutan, lalu pasangan saldo. Seluruh header, detail, saldo, dan pergerakan commit bersama. Preview bukan reservasi. Error bisnis tambahan: `MASTER_INACTIVE`, `OPENING_NOT_ALLOWED`, `INSUFFICIENT_STOCK`, `STOCK_OVERFLOW`, dan `IDEMPOTENCY_CONFLICT` (409); header key salah `INVALID_IDEMPOTENCY_KEY` (400).
+
+Frontend mempertahankan key/payload selama hasil request belum diketahui, mengunci perubahan form, dan menyediakan retry transaksi identik. Key belum dipersistenkan setelah aplikasi ditutup paksa. Preview saat ini dipicu tombol dan dibatalkan setiap perubahan input; preview otomatis dengan debounce belum tersedia.
+
+Verifikasi tahap transaksi:
+- `npm run check` dan 9 test Node lulus.
+- MySQL terisolasi: preview multi-item, transfer, balancing masuk/keluar, stok awal, replay identik, konflik key, stok kurang, fault injection rollback, request key sama bersamaan, dua pengurangan bersaing, rekonsiliasi saldo, pagination histori/kartu stok lulus.
+- `flutter analyze` tanpa masalah; 17 test Flutter lulus, termasuk drawer/Pengaturan dan invalidasi preview balancing.
+- APK debug berhasil dibangun dan dipasang. Dashboard emulator menampilkan data MySQL nyata serta dokumen stok awal.
+- Belum diverifikasi: seluruh alur tulis emulator, kesamaan visual penuh, seluruh ukuran layar baru, transfer berlawanan arah bersamaan, seluruh kombinasi konflik master/transfer/balancing, serta retry UI setelah timeout pada transaksi baru.
+- Filter histori saat ini baru jenis transaksi; filter tanggal/gudang/pencarian dokumen dan pemilih master dengan pencarian masih perlu dilengkapi. Pemilih form memuat seluruh halaman master aktif.
 
 ## Kontrak master
 

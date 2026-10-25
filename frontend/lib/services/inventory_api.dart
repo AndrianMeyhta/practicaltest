@@ -43,6 +43,7 @@ class InventoryApi {
     String path, {
     Map<String, String>? query,
     Map<String, dynamic>? body,
+    String? idempotencyKey,
   }) async {
     final writing = method != 'GET';
     try {
@@ -54,6 +55,9 @@ class InventoryApi {
           'Content-Type': 'application/json',
         });
       if (body != null) request.body = jsonEncode(body);
+      if (idempotencyKey != null) {
+        request.headers['Idempotency-Key'] = idempotencyKey;
+      }
       final response = await (() async => http.Response.fromStream(
         await _client.send(request),
       ))().timeout(timeout);

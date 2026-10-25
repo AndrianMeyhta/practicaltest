@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto';
 import express from 'express';
 import { ApiError, publicError } from './api-error.js';
 import { validateId, validateList, validateMaster } from './master-validation.js';
+import { stockPayload, idempotencyKey } from './stock-validation.js';
+import { historyQuery } from './stock-history.js';
 
 export function createApp({ database } = {}) {
   const app = express();
@@ -58,6 +60,22 @@ export function createApp({ database } = {}) {
     if (!result) throw new ApiError(404, 'NOT_FOUND', 'Gudang tidak ditemukan.');
     res.json(result);
   });
+  for (const kind of ['opening-stocks', 'transfers', 'adjustments']) {
+    app.post(`/api/v1/${kind}/preview`, async (req, res) => {
+      res.json({ data: await database.transactions.preview(kind, stockPayload(req.body, kind)) });
+    });
+    app.post(`/api/v1/${kind}`, async (req, res) => {
+      const body = stockPayload(req.body, kind);
+      const result = await database.transactions.create(kind, body, idempotencyKey(req.get('Idempotency-Key')));
+      res.status(result.replay ? 200 : 201).json({ data: result.data });
+    });
+    app.get(`/api/v1/${kind}/:id`, async (req, res) => {
+      res.json({ data: await database.transactions.detail(kind, validateId(req.params.id)) });
+    });
+  }
+  app.get('/api/v1/history', async (req, res) => res.json(await database.history.list(historyQuery(req.query))));
+  app.get('/api/v1/stock-card', async (req, res) => res.json(await database.history.ledger(historyQuery(req.query, true))));
+  app.get('/api/v1/dashboard', async (req, res) => res.json({ data: await database.history.dashboard() }));
   app.use((req, res) => {
     res.status(404).json({ error: {
       code: 'NOT_FOUND', message: 'Endpoint tidak ditemukan.', details: [], request_id: req.requestId,

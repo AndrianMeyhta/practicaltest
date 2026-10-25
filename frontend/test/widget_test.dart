@@ -6,9 +6,14 @@ void main() {
   testWidgets('Menampilkan identitas dan status aplikasi', (tester) async {
     await tester.pumpWidget(MutasiStokApp(checkHealth: () async {}));
     await tester.pumpAndSettle();
-    expect(find.text('Mutasi Stok'), findsOneWidget);
+    expect(find.text('Dashboard'), findsOneWidget);
     expect(find.text('Persediaan antar gudang'), findsOneWidget);
-    expect(find.textContaining('belum tersedia'), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+    expect(find.text('mutasi stock'), findsOneWidget);
+    await tester.tap(find.text('Pengaturan'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Backend dan MySQL terhubung'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

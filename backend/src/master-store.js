@@ -61,6 +61,7 @@ export function masterStore(pool, kind) {
       await lock(c, id);
       // Locking read melihat commit terbaru setelah menunggu master, bukan snapshot lama.
       const references = [
+        ['stock_adjustments', `${foreign}=?`, [id]],
         ['opening_stocks', `${foreign}=?`, [id]],
         [item ? 'stock_transfer_items' : 'stock_transfers', item ? 'item_id=?' : 'source_warehouse_id=? OR destination_warehouse_id=?', item ? [id] : [id, id]],
         ['stock_movements', `${foreign}=?`, [id]],

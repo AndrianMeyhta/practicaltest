@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'widgets/connection_status.dart';
 import 'screens/inventory_page.dart';
 import 'screens/masters_page.dart';
+import 'screens/home_shell.dart';
 
 class MutasiStokApp extends StatelessWidget {
   const MutasiStokApp({super.key, this.checkHealth});
@@ -31,7 +32,7 @@ class MutasiStokApp extends StatelessWidget {
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
         ),
       ),
-      home: WelcomePage(checkHealth: checkHealth),
+      home: HomeShell(checkHealth: checkHealth),
     );
   }
 }
