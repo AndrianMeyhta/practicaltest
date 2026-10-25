@@ -145,7 +145,9 @@ Verifikasi tahap transaksi:
 - `flutter analyze` tanpa masalah; 17 test Flutter lulus, termasuk drawer/Pengaturan dan invalidasi preview balancing.
 - APK debug berhasil dibangun dan dipasang. Dashboard emulator menampilkan data MySQL nyata serta dokumen stok awal.
 - Belum diverifikasi: seluruh alur tulis emulator, kesamaan visual penuh, seluruh ukuran layar baru, transfer berlawanan arah bersamaan, seluruh kombinasi konflik master/transfer/balancing, serta retry UI setelah timeout pada transaksi baru.
-- Filter histori saat ini baru jenis transaksi; filter tanggal/gudang/pencarian dokumen dan pemilih master dengan pencarian masih perlu dilengkapi. Pemilih form memuat seluruh halaman master aktif.
+- Riwayat mendukung jenis transaksi, pencarian nomor dan rentang tanggal lokal (dikirim sebagai UTC `from` inklusif / `until` eksklusif), jumlah jenis barang, serta waktu lokal. Backend juga mendukung `source_warehouse_id` dan `destination_warehouse_id`; kontrol filter gudang di UI belum tersedia. Pemilih master dengan pencarian masih perlu dilengkapi; pemilih form memuat seluruh halaman master aktif.
+- Preview dikelompokkan per barang dengan perubahan gudang minus merah/plus hijau. Tombol `Preview stok` dan `Konfirmasi` berdampingan pada bagian bawah layar; dialog persetujuan tetap. Bukti transaksi tetap per gudang.
+- Kartu stok menyertakan `document_number`. Alias GET `/api/v1/stock-movements` tersedia untuk kartu stok dan GET `/api/v1/transfers` untuk riwayat khusus transfer.
 
 ## Kontrak master
 

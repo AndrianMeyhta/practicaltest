@@ -73,13 +73,11 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Engsel (pcs)').last);
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Periksa preview stok'));
-      await tester.tap(find.text('Periksa preview stok'));
+      await tester.tap(find.text('Preview stok'));
       await tester.pumpAndSettle();
       expect(previews, 0);
       await tester.enterText(find.byType(TextFormField).last, 'Reject');
-      await tester.ensureVisible(find.text('Periksa preview stok'));
-      await tester.tap(find.text('Periksa preview stok'));
+      await tester.tap(find.text('Preview stok'));
       await tester.pumpAndSettle();
       expect(previews, 1);
       await tester.ensureVisible(find.byType(FilledButton));

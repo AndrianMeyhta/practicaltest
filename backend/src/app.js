@@ -74,6 +74,8 @@ export function createApp({ database } = {}) {
     });
   }
   app.get('/api/v1/history', async (req, res) => res.json(await database.history.list(historyQuery(req.query))));
+  app.get('/api/v1/transfers', async (req, res) => res.json(await database.history.list({ ...historyQuery(req.query), kind: 'transfers' })));
+  app.get('/api/v1/stock-movements', async (req, res) => res.json(await database.history.ledger(historyQuery(req.query, true))));
   app.get('/api/v1/stock-card', async (req, res) => res.json(await database.history.ledger(historyQuery(req.query, true))));
   app.get('/api/v1/dashboard', async (req, res) => res.json({ data: await database.history.dashboard() }));
   app.use((req, res) => {

@@ -27,6 +27,15 @@ class _TransactionHistoryState extends State<TransactionHistory> {
   String _kind = '';
   Object? _error;
   bool _loading = true;
+  final _search = TextEditingController();
+  DateTimeRange? _dates;
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -46,6 +55,14 @@ class _TransactionHistoryState extends State<TransactionHistory> {
           'page': '$_page',
           'limit': widget.compact ? '5' : '20',
           if (_kind.isNotEmpty) 'kind': _kind,
+          if (_search.text.trim().isNotEmpty) 'search': _search.text.trim(),
+          if (_dates != null) 'from': _dates!.start.toUtc().toIso8601String(),
+          if (_dates != null)
+            'until': DateTime(
+              _dates!.end.year,
+              _dates!.end.month,
+              _dates!.end.day + 1,
+            ).toUtc().toIso8601String(),
         },
       );
       if (mounted) {
@@ -65,6 +82,72 @@ class _TransactionHistoryState extends State<TransactionHistory> {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
+      if (!widget.compact) ...[
+        TextField(
+          controller: _search,
+          enabled: !_loading,
+          maxLength: 100,
+          decoration: InputDecoration(
+            labelText: 'Cari nomor transaksi',
+            counterText: '',
+            suffixIcon: IconButton(
+              tooltip: 'Cari',
+              onPressed: _loading
+                  ? null
+                  : () {
+                      _page = 1;
+                      _load();
+                    },
+              icon: const Icon(Icons.search),
+            ),
+          ),
+          onSubmitted: (_) {
+            _page = 1;
+            _load();
+          },
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          children: [
+            OutlinedButton.icon(
+              icon: const Icon(Icons.date_range),
+              label: Text(
+                _dates == null
+                    ? 'Filter tanggal'
+                    : '${_dates!.start.day}/${_dates!.start.month}/${_dates!.start.year} – ${_dates!.end.day}/${_dates!.end.month}/${_dates!.end.year}',
+              ),
+              onPressed: _loading
+                  ? null
+                  : () async {
+                      final dates = await showDateRangePicker(
+                        context: context,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime.now(),
+                        initialDateRange: _dates,
+                      );
+                      if (dates != null && mounted) {
+                        _dates = dates;
+                        _page = 1;
+                        _load();
+                      }
+                    },
+            ),
+            if (_dates != null)
+              TextButton(
+                onPressed: _loading
+                    ? null
+                    : () {
+                        _dates = null;
+                        _page = 1;
+                        _load();
+                      },
+                child: const Text('Hapus tanggal'),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+      ],
       if (!widget.compact)
         DropdownButtonFormField<String>(
           initialValue: '',
@@ -104,7 +187,7 @@ class _TransactionHistoryState extends State<TransactionHistory> {
                   '${row['number']} • ${transactionLabel(row['kind'] as String)}',
                 ),
                 subtitle: Text(
-                  '${row['location']}\n${row['created_at']}\n${row['notes']}',
+                  '${row['location']}\n${localTransactionTime(row['created_at'])}\n${row['item_count'] ?? 1} jenis barang\n${row['notes'] ?? ''}',
                 ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.push<void>(

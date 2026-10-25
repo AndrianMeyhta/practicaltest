@@ -91,7 +91,7 @@ class _StockCardPageState extends State<StockCardPage> {
                     }} • ${localTransactionTime(row['created_at'])}',
                   ),
                   subtitle: Text(
-                    'Masuk ${row['quantity_in']} • Keluar ${row['quantity_out']}\nSaldo ${row['balance_before']} → ${row['balance_after']}',
+                    '${row['document_number'] ?? ''}\nMasuk ${row['quantity_in']} • Keluar ${row['quantity_out']}\nSaldo ${row['balance_before']} → ${row['balance_after']}',
                   ),
                   onTap: () {
                     final kind = row['opening_stock_id'] != null

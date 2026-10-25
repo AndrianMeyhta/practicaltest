@@ -3,6 +3,56 @@ import 'package:flutter/material.dart';
 const stockInColor = Color(0xFF146B45);
 const stockOutColor = Color(0xFFB3261E);
 
+class ItemStockPreview extends StatelessWidget {
+  const ItemStockPreview({super.key, required this.changes});
+  final List<Map<String, dynamic>> changes;
+  @override
+  Widget build(BuildContext context) {
+    final groups = <Object, List<Map<String, dynamic>>>{};
+    for (final row in changes) {
+      groups.putIfAbsent(row['item_id'] ?? row['item_name'], () => []).add(row);
+    }
+    return Column(
+      children: [
+        for (final rows in groups.values)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      rows.first['item_name'] as String,
+                      style: Theme.of(context).textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 8),
+                    for (final row
+                        in [...rows]..sort(
+                          (a, b) => (b['quantity_out'] as int).compareTo(
+                            a['quantity_out'] as int,
+                          ),
+                        ))
+                      StockMovementRow(
+                        title: row['warehouse_name'] as String,
+                        incoming: (row['quantity_in'] as int) > 0,
+                        quantity: (row['quantity_in'] as int) > 0
+                            ? row['quantity_in'] as int
+                            : row['quantity_out'] as int,
+                        unit: row['unit'] as String,
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 String localTransactionTime(Object? value) {
   final date = DateTime.tryParse('$value')?.toLocal();
   if (date == null) return 'Waktu tidak tersedia';

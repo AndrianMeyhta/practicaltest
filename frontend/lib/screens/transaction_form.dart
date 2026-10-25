@@ -383,6 +383,38 @@ class _TransactionFormState extends State<TransactionForm> {
     canPop: !_busy && !_uncertain,
     child: Scaffold(
       appBar: AppBar(title: Text(transactionLabel(widget.kind))),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _loading || _busy || _uncertain ? null : _inspect,
+                  child: const Text('Preview stok'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton(
+                  onPressed:
+                      _loading || _busy || (!_uncertain && _preview == null)
+                      ? null
+                      : _save,
+                  child: Text(
+                    _busy
+                        ? 'Memproses…'
+                        : _uncertain
+                        ? 'Coba ulang'
+                        : 'Konfirmasi',
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
       body: SafeArea(
         child: _loading
             ? const Center(child: CircularProgressIndicator())
@@ -538,50 +570,17 @@ class _TransactionFormState extends State<TransactionForm> {
                           ),
                         ),
                       ),
-                    if (!_uncertain)
-                      OutlinedButton(
-                        onPressed: _busy ? null : _inspect,
-                        child: const Text('Periksa preview stok'),
-                      ),
                     if (_preview != null) ...[
-                      for (final row in _preview!['changes'] as List)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: Card(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 4,
-                              ),
-                              child: StockMovementRow(
-                                title: row['warehouse_name'] as String,
-                                subtitle: row['item_name'] as String,
-                                incoming: (row['quantity_in'] as int) > 0,
-                                quantity: (row['quantity_in'] as int) > 0
-                                    ? row['quantity_in'] as int
-                                    : row['quantity_out'] as int,
-                                unit: row['unit'] as String,
-                              ),
-                            ),
-                          ),
-                        ),
+                      const SizedBox(height: 16),
+                      ItemStockPreview(
+                        changes: (_preview!['changes'] as List)
+                            .cast<Map<String, dynamic>>(),
+                      ),
                     ],
                     if (_uncertain)
                       SelectableText(
                         'Hasil belum diketahui. Jangan membuat transaksi baru. Coba ulang dengan key yang sama: $_key',
                       ),
-                    FilledButton(
-                      onPressed: _busy || (!_uncertain && _preview == null)
-                          ? null
-                          : _save,
-                      child: Text(
-                        _busy
-                            ? 'Memproses…'
-                            : _uncertain
-                            ? 'Coba ulang transaksi yang sama'
-                            : 'Lanjutkan ke konfirmasi',
-                      ),
-                    ),
                   ],
                 ),
               ),
