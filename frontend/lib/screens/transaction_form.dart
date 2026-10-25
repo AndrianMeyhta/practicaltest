@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../models/master.dart';
 import '../services/inventory_api.dart';
 import 'transaction_history.dart';
+import '../widgets/stock_movement.dart';
 
 class TransactionLine {
   Master? item;
@@ -543,15 +544,24 @@ class _TransactionFormState extends State<TransactionForm> {
                         child: const Text('Periksa preview stok'),
                       ),
                     if (_preview != null) ...[
-                      const Text(
-                        'Preview bukan reservasi stok. Saldo diperiksa ulang saat menyimpan.',
-                      ),
                       for (final row in _preview!['changes'] as List)
-                        Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Text(
-                              '${row['item_name']}\n${row['warehouse_name']}\n${row['balance_before']} → ${row['balance_after']} ${row['unit']}\nMasuk ${row['quantity_in']} • Keluar ${row['quantity_out']}',
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: Card(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 4,
+                              ),
+                              child: StockMovementRow(
+                                title: row['warehouse_name'] as String,
+                                subtitle: row['item_name'] as String,
+                                incoming: (row['quantity_in'] as int) > 0,
+                                quantity: (row['quantity_in'] as int) > 0
+                                    ? row['quantity_in'] as int
+                                    : row['quantity_out'] as int,
+                                unit: row['unit'] as String,
+                              ),
                             ),
                           ),
                         ),

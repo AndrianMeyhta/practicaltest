@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/inventory_api.dart';
 import 'transaction_history.dart';
+import '../widgets/stock_movement.dart';
 
 class StockCardPage extends StatefulWidget {
   const StockCardPage({
@@ -72,7 +73,23 @@ class _StockCardPageState extends State<StockCardPage> {
             for (final row in _data!['data'] as List)
               Card(
                 child: ListTile(
-                  title: Text('${row['movement_type']} • ${row['created_at']}'),
+                  leading: Icon(
+                    (row['quantity_in'] as int) > 0
+                        ? Icons.south_west_rounded
+                        : Icons.north_east_rounded,
+                    color: (row['quantity_in'] as int) > 0
+                        ? stockInColor
+                        : stockOutColor,
+                  ),
+                  title: Text(
+                    '${switch (row['movement_type']) {
+                      'OPENING' => 'Stok awal',
+                      'TRANSFER_IN' => 'Mutasi masuk',
+                      'TRANSFER_OUT' => 'Mutasi keluar',
+                      'ADJUSTMENT_IN' => 'Penyesuaian masuk',
+                      _ => 'Penyesuaian keluar',
+                    }} • ${localTransactionTime(row['created_at'])}',
+                  ),
                   subtitle: Text(
                     'Masuk ${row['quantity_in']} • Keluar ${row['quantity_out']}\nSaldo ${row['balance_before']} → ${row['balance_after']}',
                   ),

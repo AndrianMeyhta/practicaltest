@@ -178,9 +178,9 @@ Tidak ada login pada baseline. Aplikasi ditujukan untuk demo lokal/lingkungan te
 ### FR-05 — Pratinjau dampak stok (P0)
 
 - Backend menghasilkan pratinjau dari payload form; tidak mempercayai hasil hitung dari frontend.
-- Menampilkan asal, tujuan, daftar barang, kuantitas, stok asal sebelum/sesudah, stok tujuan sebelum/sesudah, jumlah jenis barang, dan catatan.
+- Preview utama menampilkan gudang dan barang di kiri serta perubahan quantity bersatuan di kanan: tambah hijau dengan tanda plus, kurang merah dengan tanda minus. Rincian sebelum/sesudah tetap dihitung backend, tetapi tidak memenuhi kartu preview utama dengan informasi berulang.
+- Alur tetap form → preview → tombol konfirmasi → persetujuan. Tidak ada paragraf reservasi pada preview; pemeriksaan ulang stok tetap dilakukan backend dan disebut pada dialog konfirmasi yang sudah tersedia.
 - Rumus: `asal_sesudah = asal_sekarang - jumlah`; `tujuan_sesudah = tujuan_sekarang + jumlah`.
-- Menampilkan keterangan bahwa stok akan diperiksa ulang saat konfirmasi.
 - Pratinjau tidak menulis stok, tidak membuat transaksi, dan tidak mengunci/reservasi stok selama pengguna meninjau layar.
 - Tombol konfirmasi tersedia setelah pratinjau berhasil.
 - Jika terjadi perubahan stok tetapi jumlah masih mencukupi, backend boleh memproses memakai stok terbaru. Bukti transaksi menampilkan hasil aktual, bukan angka pratinjau yang lama.

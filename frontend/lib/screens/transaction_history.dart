@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/inventory_api.dart';
+import '../widgets/stock_movement.dart';
 
 String transactionLabel(String kind) => switch (kind) {
   'transfers' => 'Transfer antar gudang',
@@ -218,32 +219,88 @@ class _TransactionDetailState extends State<TransactionDetail> {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             Text(transactionLabel(widget.kind)),
-            Text('Tercatat: ${_data!['created_at']}'),
-            Text(
-              '${_data!['warehouse_name'] ?? '${_data!['source_warehouse_name']} → ${_data!['destination_warehouse_name']}'}',
+            const SizedBox(height: 8),
+            Text(localTransactionTime(_data!['created_at'])),
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Chip(
+                avatar: Icon(Icons.check_circle_outline, color: stockInColor),
+                label: Text('Selesai'),
+              ),
             ),
             const SizedBox(height: 16),
             if (widget.kind == 'transfers')
-              for (final item in _data!['items'] as List)
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(
-                      '${item['item_code']} • ${item['item_name']}\n${item['quantity']} ${item['item_unit']}\nAsal: ${item['source_stock_before']} → ${item['source_stock_after']}\nTujuan: ${item['destination_stock_before']} → ${item['destination_stock_after']}',
-                    ),
-                  ),
+              for (final incoming in [false, true])
+                WarehouseMovementCard(
+                  warehouse:
+                      _data![incoming
+                              ? 'destination_warehouse_name'
+                              : 'source_warehouse_name']
+                          as String,
+                  incoming: incoming,
+                  label: incoming
+                      ? 'Gudang tujuan • Stok masuk'
+                      : 'Gudang asal • Stok keluar',
+                  rows: [
+                    for (final item in _data!['items'] as List)
+                      StockMovementRow(
+                        title: item['item_name'] as String,
+                        subtitle: item['item_code'] as String,
+                        quantity: item['quantity'] as int,
+                        unit: item['item_unit'] as String,
+                        incoming: incoming,
+                      ),
+                  ],
                 )
             else
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(
-                    '${_data!['item_code']} • ${_data!['item_name']}\n${_data!['direction'] == 'OUT' ? 'Keluar' : 'Masuk'} ${_data!['quantity']} ${_data!['item_unit']}',
+              WarehouseMovementCard(
+                warehouse: _data!['warehouse_name'] as String,
+                incoming: _data!['direction'] != 'OUT',
+                rows: [
+                  StockMovementRow(
+                    title: _data!['item_name'] as String,
+                    subtitle: _data!['item_code'] as String,
+                    quantity: _data!['quantity'] as int,
+                    unit: _data!['item_unit'] as String,
+                    incoming: _data!['direction'] != 'OUT',
                   ),
-                ),
+                ],
               ),
             const SizedBox(height: 16),
-            Text('Keterangan: ${_data!['notes']}'),
+            Text('Keterangan', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 6),
+            Text(
+              (_data!['notes'] as String? ?? '').isEmpty
+                  ? 'Tidak ada catatan.'
+                  : _data!['notes'] as String,
+            ),
+            const SizedBox(height: 16),
+            Card(
+              child: ExpansionTile(
+                title: const Text('Rincian saldo saat transaksi'),
+                childrenPadding: const EdgeInsets.all(16),
+                children: [
+                  if (widget.kind == 'transfers')
+                    for (final item in _data!['items'] as List)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            '${item['item_name']} (${item['item_unit']})\n${_data!['source_warehouse_name']}: ${item['source_stock_before']} → ${item['source_stock_after']}\n${_data!['destination_warehouse_name']}: ${item['destination_stock_before']} → ${item['destination_stock_after']}',
+                          ),
+                        ),
+                      )
+                  else
+                    Text(
+                      '${_data!['balance_before'] ?? '—'} → ${_data!['balance_after'] ?? '—'} ${_data!['item_unit']}',
+                    ),
+                  const Text(
+                    'Saldo historis saat pencatatan, bukan saldo terkini.',
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 16),
             const Text('Dokumen ini tidak dapat diubah atau dihapus.'),
           ],

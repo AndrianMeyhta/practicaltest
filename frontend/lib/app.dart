@@ -20,9 +20,27 @@ class MutasiStokApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFFF7F9FB),
         cardTheme: CardThemeData(
           color: Colors.white,
-          elevation: 0,
+          elevation: 1,
+          shadowColor: const Color(0x12176B58),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: Color(0xFFE4EBE7)),
+          ),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            minimumSize: const Size(48, 50),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size(48, 48),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
           ),
         ),
         inputDecorationTheme: InputDecorationTheme(
