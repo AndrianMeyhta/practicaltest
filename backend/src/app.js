@@ -30,6 +30,29 @@ export function createApp({ database } = {}) {
       } });
     }
   });
+  function pagination(req) {
+    const page = req.query.page ?? '1';
+    const limit = req.query.limit ?? '20';
+    if (![page, limit].every((v) => typeof v === 'string' && /^[1-9]\d*$/.test(v)) ||
+      !Number.isSafeInteger(Number(page)) || Number(page) > 1000000 || Number(limit) > 100) return null;
+    return { page: Number(page), limit: Number(limit) };
+  }
+  app.get(['/api/v1/warehouses', '/api/v1/stocks'], async (req, res, next) => {
+    const paging = pagination(req);
+    const stocks = req.path.endsWith('/stocks');
+    const warehouseId = Number(req.query.warehouse_id);
+    if (!paging || (stocks && (!/^[1-9]\d*$/.test(req.query.warehouse_id ?? '') || !Number.isSafeInteger(warehouseId))) ||
+      (req.query.search !== undefined && (typeof req.query.search !== 'string' || req.query.search.length > 100))) {
+      return res.status(400).json({ error: { code: 'INVALID_QUERY', message: 'Parameter daftar tidak valid.', request_id: req.requestId } });
+    }
+    try {
+      const result = stocks
+        ? await database.listStocks({ ...paging, warehouseId, search: req.query.search ?? '' })
+        : await database.listWarehouses(paging);
+      if (!result) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Gudang tidak ditemukan.', request_id: req.requestId } });
+      res.json(result);
+    } catch (error) { next(error); }
+  });
   app.use((req, res) => {
     res.status(404).json({ error: {
       code: 'NOT_FOUND', message: 'Endpoint tidak ditemukan.', request_id: req.requestId,

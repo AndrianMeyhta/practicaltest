@@ -12,7 +12,10 @@
     "dev": "node --env-file-if-exists=.env --watch src/server.js",
     "test": "node --test",
     "check": "node --check src/app.js && node --check src/server.js && node --check src/config.js && node --check src/database.js",
-    "db:check": "node --env-file-if-exists=.env scripts/check-database.js"
+    "db:check": "node --env-file-if-exists=.env scripts/check-database.js",
+    "db:migrate": "node --env-file-if-exists=.env scripts/migrate.js",
+    "db:seed": "node --env-file-if-exists=.env scripts/seed.js",
+    "test:database": "node --env-file-if-exists=.env scripts/verify-database.js"
   },
   "dependencies": {
     "express": "5.3.0",
