@@ -4,7 +4,8 @@ import 'package:mutasi_stok/app.dart';
 
 void main() {
   testWidgets('Menampilkan identitas dan status aplikasi', (tester) async {
-    await tester.pumpWidget(const MutasiStokApp());
+    await tester.pumpWidget(MutasiStokApp(checkHealth: () async {}));
+    await tester.pumpAndSettle();
     expect(find.text('Mutasi Stok'), findsOneWidget);
     expect(find.text('Persediaan antar gudang'), findsOneWidget);
     expect(find.textContaining('belum tersedia'), findsOneWidget);
@@ -23,9 +24,10 @@ void main() {
               .copyWith(textScaler: const TextScaler.linear(2)),
           child: child!,
         ),
-        home: const WelcomePage(),
+        home: WelcomePage(checkHealth: () async {}),
       ),
     );
+    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
 }

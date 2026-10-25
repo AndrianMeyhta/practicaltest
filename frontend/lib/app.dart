@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
+import 'widgets/connection_status.dart';
+
 class MutasiStokApp extends StatelessWidget {
-  const MutasiStokApp({super.key});
+  const MutasiStokApp({super.key, this.checkHealth});
+  final Future<void> Function()? checkHealth;
 
   @override
   Widget build(BuildContext context) {
@@ -12,13 +15,14 @@ class MutasiStokApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF176B58)),
         useMaterial3: true,
       ),
-      home: const WelcomePage(),
+      home: WelcomePage(checkHealth: checkHealth),
     );
   }
 }
 
 class WelcomePage extends StatelessWidget {
-  const WelcomePage({super.key});
+  const WelcomePage({super.key, this.checkHealth});
+  final Future<void> Function()? checkHealth;
 
   @override
   Widget build(BuildContext context) {
@@ -38,6 +42,8 @@ class WelcomePage extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               const Text('Pengelolaan stok profil dan aksesori UPVC.'),
+              const SizedBox(height: 24),
+              ConnectionStatus(checkHealth: checkHealth),
               const SizedBox(height: 24),
               const Text(
                 'Aplikasi sedang dalam tahap pengembangan. '
