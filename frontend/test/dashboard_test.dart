@@ -22,7 +22,11 @@ Map<String, dynamic> summary({bool empty = false}) => {
 };
 
 void main() {
+<<<<<<< HEAD
   testWidgets('Ringkasan memisahkan jenis barang, gudang dan satuan stok', (
+=======
+  testWidgets('Ringkasan hanya menampilkan jumlah jenis barang dan gudang', (
+>>>>>>> 7a82f81 (style: redesain keseluruhan app)
     tester,
   ) async {
     final api = InventoryApi(
@@ -43,8 +47,15 @@ void main() {
     expect(find.text('Gudang aktif'), findsOneWidget);
     expect(find.text('12'), findsOneWidget);
     expect(find.text('3'), findsOneWidget);
+<<<<<<< HEAD
     expect(find.text('120\nbatang'), findsOneWidget);
     expect(find.text('45\npcs'), findsOneWidget);
+=======
+    expect(find.text('Total stok semua gudang'), findsNothing);
+    expect(find.text('Gabungan stok dari seluruh gudang'), findsNothing);
+    expect(find.text('120\nbatang'), findsNothing);
+    expect(find.text('45\npcs'), findsNothing);
+>>>>>>> 7a82f81 (style: redesain keseluruhan app)
     expect(find.text('165'), findsNothing);
     expect(tester.takeException(), isNull);
   });
@@ -71,7 +82,12 @@ void main() {
     expect(find.text('Ringkasan stok belum bisa dimuat.'), findsOneWidget);
     await tester.tap(find.text('Coba lagi'));
     await tester.pumpAndSettle();
+<<<<<<< HEAD
     expect(find.text('120\nbatang'), findsOneWidget);
+=======
+    expect(find.text('12'), findsOneWidget);
+    expect(find.text('3'), findsOneWidget);
+>>>>>>> 7a82f81 (style: redesain keseluruhan app)
     expect(calls, 2);
     expect(tester.takeException(), isNull);
   });
@@ -92,7 +108,11 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('0'), findsNWidgets(2));
+<<<<<<< HEAD
     expect(find.text('Belum ada stok tercatat.'), findsOneWidget);
+=======
+    expect(find.text('Total stok semua gudang'), findsNothing);
+>>>>>>> 7a82f81 (style: redesain keseluruhan app)
     expect(find.text('Coba lagi'), findsNothing);
   });
 

@@ -371,7 +371,10 @@ class _DashboardSummaryState extends State<DashboardSummary> {
         ),
       );
     }
+<<<<<<< HEAD
     final units = _data!['units'] as List;
+=======
+>>>>>>> 7a82f81 (style: redesain keseluruhan app)
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -408,6 +411,7 @@ class _DashboardSummaryState extends State<DashboardSummary> {
             );
           },
         ),
+<<<<<<< HEAD
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(24),
@@ -487,6 +491,8 @@ class _DashboardSummaryState extends State<DashboardSummary> {
             ],
           ),
         ),
+=======
+>>>>>>> 7a82f81 (style: redesain keseluruhan app)
       ],
     );
   }
