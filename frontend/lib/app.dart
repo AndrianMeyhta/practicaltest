@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'widgets/connection_status.dart';
+import 'widgets/app_style.dart';
 import 'screens/inventory_page.dart';
 import 'screens/masters_page.dart';
 import 'screens/home_shell.dart';
@@ -14,42 +15,7 @@ class MutasiStokApp extends StatelessWidget {
     return MaterialApp(
       title: 'Mutasi Stok',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF176B58)),
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF7F9FB),
-        cardTheme: CardThemeData(
-          color: Colors.white,
-          elevation: 1,
-          shadowColor: const Color(0x12176B58),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: const BorderSide(color: Color(0xFFE4EBE7)),
-          ),
-        ),
-        filledButtonTheme: FilledButtonThemeData(
-          style: FilledButton.styleFrom(
-            minimumSize: const Size(48, 50),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
-        ),
-        outlinedButtonTheme: OutlinedButtonThemeData(
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size(48, 48),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding: const EdgeInsets.all(16),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-        ),
-      ),
+      theme: inventoryTheme(),
       home: HomeShell(checkHealth: checkHealth),
     );
   }
@@ -69,15 +35,11 @@ class WelcomePage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.warehouse_outlined, size: 48),
-              const SizedBox(height: 24),
-              Text(
-                'Persediaan antar gudang',
-                style: Theme.of(context).textTheme.headlineMedium,
+              const PageHeading(
+                eyebrow: 'Inventori / UPVC',
+                title: 'Kelola stok gudang',
+                description: 'Stok profil dan aksesori UPVC di setiap gudang.',
               ),
-              const SizedBox(height: 12),
-              const Text('Pengelolaan stok profil dan aksesori UPVC.'),
-              const SizedBox(height: 24),
               ConnectionStatus(checkHealth: checkHealth),
               const SizedBox(height: 16),
               FilledButton.icon(
@@ -109,10 +71,6 @@ class WelcomePage extends StatelessWidget {
                     ),
                   ),
                 ),
-              const Text(
-                'Aplikasi sedang dalam tahap pengembangan. '
-                'Transaksi mutasi belum tersedia.',
-              ),
             ],
           ),
         ),

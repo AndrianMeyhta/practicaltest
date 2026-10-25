@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../models/master.dart';
 import '../services/inventory_api.dart';
+import '../widgets/app_style.dart';
 import 'master_editor.dart';
 
 class MastersPage extends StatefulWidget {
@@ -88,8 +89,15 @@ class _MastersPageState extends State<MastersPage> {
     ),
     body: SafeArea(
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 104),
         children: [
+          PageHeading(
+            eyebrow: 'Data / ${_items ? 'Barang' : 'Gudang'}',
+            title: _items ? 'Daftar barang' : 'Daftar gudang',
+            description: _items
+                ? 'Kelola kode, nama, satuan, dan status barang.'
+                : 'Kelola lokasi penyimpanan dan status gudang.',
+          ),
           if (_items)
             TextField(
               decoration: const InputDecoration(
@@ -109,6 +117,7 @@ class _MastersPageState extends State<MastersPage> {
             ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
+            isExpanded: true,
             initialValue: 'all',
             decoration: const InputDecoration(labelText: 'Status'),
             items: const [
@@ -130,10 +139,7 @@ class _MastersPageState extends State<MastersPage> {
             OutlinedButton(onPressed: _load, child: const Text('Coba lagi')),
           ] else ...[
             if (_data!.rows.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(24),
-                child: Text('Belum ada data yang sesuai.'),
-              ),
+              const StatusMessage(text: 'Belum ada data yang sesuai.'),
             for (final master in _data!.rows)
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
@@ -144,15 +150,33 @@ class _MastersPageState extends State<MastersPage> {
                       vertical: 8,
                     ),
                     leading: CircleAvatar(
+                      backgroundColor: forest,
+                      foregroundColor: leaf,
                       child: Icon(
                         _items
                             ? Icons.inventory_2_outlined
                             : Icons.warehouse_outlined,
                       ),
                     ),
-                    title: Text(master.name),
-                    subtitle: Text(
-                      '${master.code} • ${master.unit ?? 'Gudang'} • ${master.active ? 'Aktif' : 'Nonaktif'}',
+                    title: Text(
+                      master.name,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 4),
+                        Text('${master.code} • ${master.unit ?? 'Gudang'}'),
+                        const SizedBox(height: 8),
+                        Text(
+                          master.active ? 'Aktif' : 'Nonaktif',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: master.active ? forest : muted,
+                          ),
+                        ),
+                      ],
                     ),
                     trailing: const Icon(Icons.edit_outlined),
                     onTap: () => _edit(master),

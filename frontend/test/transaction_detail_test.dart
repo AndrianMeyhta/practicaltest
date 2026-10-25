@@ -48,6 +48,14 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byType(WarehouseMovementCard), findsNWidgets(2));
+      expect(
+        tester.widget<Icon>(find.byIcon(Icons.north_east_rounded)).color,
+        const Color(0xFFFF8A80),
+      );
+      expect(
+        tester.widget<Icon>(find.byIcon(Icons.south_west_rounded)).color,
+        const Color(0xFFB8D875),
+      );
       expect(find.text('−10 batang'), findsOneWidget);
       expect(find.text('+10 batang'), findsOneWidget);
       expect(

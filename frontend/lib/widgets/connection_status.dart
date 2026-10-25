@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/health_api.dart';
+import 'app_style.dart';
 
 class ConnectionStatus extends StatefulWidget {
   const ConnectionStatus({super.key, this.checkHealth});
@@ -52,6 +53,15 @@ class _ConnectionStatusState extends State<ConnectionStatus> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: forest,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(Icons.dns_outlined, color: leaf, size: 28),
+            ),
+            const SizedBox(height: 16),
             Text(
               'Koneksi sistem',
               style: Theme.of(context).textTheme.titleMedium,
@@ -60,7 +70,7 @@ class _ConnectionStatusState extends State<ConnectionStatus> {
             if (_loading) ...[
               const LinearProgressIndicator(),
               const SizedBox(height: 12),
-              const Text('Memeriksa backend dan database...'),
+              const Text('Memeriksa sambungan ke server...'),
             ] else ...[
               Icon(
                 _error == null

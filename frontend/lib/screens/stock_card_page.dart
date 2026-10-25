@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/inventory_api.dart';
+import '../widgets/app_style.dart';
 import 'transaction_history.dart';
 import '../widgets/stock_movement.dart';
 
@@ -60,16 +61,28 @@ class _StockCardPageState extends State<StockCardPage> {
       child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          Text(widget.title, style: Theme.of(context).textTheme.titleLarge),
+          PageHeading(
+            eyebrow: 'Inventori / Kartu stok',
+            title: widget.title,
+            description: 'Riwayat stok masuk dan keluar di gudang ini.',
+          ),
           if (_loading)
             const Center(child: CircularProgressIndicator())
           else if (_error != null) ...[
             Text(_error.toString()),
             TextButton(onPressed: _load, child: const Text('Coba lagi')),
           ] else ...[
-            Text('Saldo terkini: ${_data!['balance']}'),
+            StockPanel(
+              title: 'Saldo terkini',
+              value: '${_data!['balance']}',
+              caption: 'Satuan mengikuti barang yang dipilih',
+            ),
+            const SectionLabel('Pergerakan stok'),
             if ((_data!['data'] as List).isEmpty)
-              const Text('Belum ada pergerakan.'),
+              const StatusMessage(
+                text: 'Belum ada pergerakan.',
+                icon: Icons.history,
+              ),
             for (final row in _data!['data'] as List)
               Card(
                 child: ListTile(
@@ -81,17 +94,15 @@ class _StockCardPageState extends State<StockCardPage> {
                         ? stockInColor
                         : stockOutColor,
                   ),
-                  title: Text(
-                    '${switch (row['movement_type']) {
-                      'OPENING' => 'Stok awal',
-                      'TRANSFER_IN' => 'Mutasi masuk',
-                      'TRANSFER_OUT' => 'Mutasi keluar',
-                      'ADJUSTMENT_IN' => 'Penyesuaian masuk',
-                      _ => 'Penyesuaian keluar',
-                    }} • ${localTransactionTime(row['created_at'])}',
-                  ),
+                  title: Text(switch (row['movement_type']) {
+                    'OPENING' => 'Stok awal',
+                    'TRANSFER_IN' => 'Mutasi masuk',
+                    'TRANSFER_OUT' => 'Mutasi keluar',
+                    'ADJUSTMENT_IN' => 'Penyesuaian masuk',
+                    _ => 'Penyesuaian keluar',
+                  }, style: const TextStyle(fontWeight: FontWeight.w700)),
                   subtitle: Text(
-                    '${row['document_number'] ?? ''}\nMasuk ${row['quantity_in']} • Keluar ${row['quantity_out']}\nSaldo ${row['balance_before']} → ${row['balance_after']}',
+                    '${localTransactionTime(row['created_at'])}\n${row['document_number'] ?? ''}\nMasuk ${row['quantity_in']} • Keluar ${row['quantity_out']}\nSaldo ${row['balance_before']} → ${row['balance_after']}',
                   ),
                   onTap: () {
                     final kind = row['opening_stock_id'] != null

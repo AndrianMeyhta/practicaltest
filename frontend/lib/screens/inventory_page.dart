@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../services/inventory_api.dart';
+import '../widgets/app_style.dart';
 import 'masters_page.dart';
 import 'stock_card_page.dart';
 
@@ -103,16 +104,11 @@ class _InventoryPageState extends State<InventoryPage> {
     body: ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        Text(
-          'Persediaan UPVC',
-          style: Theme.of(context).textTheme.headlineMedium
-              ?.copyWith(fontWeight: FontWeight.w700),
+        const PageHeading(
+          eyebrow: 'Inventori / Gudang',
+          title: 'Stok per gudang',
+          description: 'Pilih gudang untuk melihat jumlah stok barang.',
         ),
-        const SizedBox(height: 8),
-        const Text(
-          'Profil utuh dan aksesori, tercatat per lokasi penyimpanan.',
-        ),
-        const SizedBox(height: 24),
         if (_warehouses.isNotEmpty)
           DropdownButtonFormField<int>(
             key: ValueKey(_warehouse),
@@ -120,7 +116,7 @@ class _InventoryPageState extends State<InventoryPage> {
             isExpanded: true,
             decoration: const InputDecoration(
               labelText: 'Gudang',
-              border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.warehouse_outlined),
             ),
             items: _warehouses
                 .map(
@@ -158,7 +154,21 @@ class _InventoryPageState extends State<InventoryPage> {
           OutlinedButton(onPressed: _load, child: const Text('Coba lagi')),
         ] else ...[
           if (_stocks.isEmpty)
-            const Text('Belum ada barang untuk ditampilkan.'),
+            const StatusMessage(
+              text: 'Belum ada barang untuk ditampilkan.',
+              icon: Icons.inventory_2_outlined,
+            ),
+          if (_stocks.isNotEmpty) ...[
+            StockPanel(
+              title: 'Gudang terpilih',
+              value:
+                  _warehouses.firstWhere((w) => w['id'] == _warehouse)['name']
+                      as String,
+              caption: '$_total jenis barang sesuai pencarian',
+              icon: Icons.warehouse_outlined,
+            ),
+            const SectionLabel('Daftar stok barang'),
+          ],
           for (final stock in _stocks)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -170,7 +180,8 @@ class _InventoryPageState extends State<InventoryPage> {
                     children: [
                       Text(
                         stock['code'] as String,
-                        style: Theme.of(context).textTheme.labelMedium,
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(color: muted, letterSpacing: 0.8),
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -178,14 +189,40 @@ class _InventoryPageState extends State<InventoryPage> {
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 16),
-                      Text(
-                        '${stock['quantity']} ${stock['unit']}',
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(
-                              color: Theme.of(context).colorScheme.primary,
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: forest,
+                          borderRadius: BorderRadius.circular(16),
+                          border: const Border(
+                            left: BorderSide(color: leaf, width: 3),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Stok tersedia',
+                              style: TextStyle(
+                                color: Color(0xFFC3DDD4),
+                                fontSize: 12,
+                              ),
                             ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${stock['quantity']} ${stock['unit']}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 26,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      TextButton(
+                      const SizedBox(height: 8),
+                      TextButton.icon(
                         onPressed: () => Navigator.push<void>(
                           context,
                           MaterialPageRoute(
@@ -197,7 +234,8 @@ class _InventoryPageState extends State<InventoryPage> {
                             ),
                           ),
                         ),
-                        child: const Text('Kartu stok'),
+                        icon: const Icon(Icons.history, size: 18),
+                        label: const Text('Kartu stok'),
                       ),
                     ],
                   ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'app_style.dart';
+
 const stockInColor = Color(0xFF146B45);
 const stockOutColor = Color(0xFFB3261E);
 
@@ -161,7 +163,6 @@ class WarehouseMovementCard extends StatelessWidget {
   final List<Widget> rows;
   @override
   Widget build(BuildContext context) {
-    final color = incoming ? stockInColor : stockOutColor;
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Card(
@@ -170,7 +171,7 @@ class WarehouseMovementCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Container(
-              color: color.withValues(alpha: 0.07),
+              color: forest,
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
@@ -178,7 +179,7 @@ class WarehouseMovementCard extends StatelessWidget {
                     incoming
                         ? Icons.south_west_rounded
                         : Icons.north_east_rounded,
-                    color: color,
+                    color: incoming ? leaf : const Color(0xFFFF8A80),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -188,13 +189,16 @@ class WarehouseMovementCard extends StatelessWidget {
                         Text(
                           warehouse,
                           style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w700),
+                              ?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           label ?? (incoming ? 'Stok masuk' : 'Stok keluar'),
                           style: TextStyle(
-                            color: color,
+                            color: const Color(0xFFC3DDD4),
                             fontWeight: FontWeight.w600,
                           ),
                         ),

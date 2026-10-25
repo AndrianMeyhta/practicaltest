@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../services/inventory_api.dart';
 import '../widgets/stock_movement.dart';
+import '../widgets/app_style.dart';
 
 String transactionLabel(String kind) => switch (kind) {
   'transfers' => 'Transfer antar gudang',
   'opening-stocks' => 'Stok awal',
-  _ => 'Balancing',
+  _ => 'Penyesuaian stok',
 };
 
 class TransactionHistory extends StatefulWidget {
@@ -150,6 +151,7 @@ class _TransactionHistoryState extends State<TransactionHistory> {
       ],
       if (!widget.compact)
         DropdownButtonFormField<String>(
+          isExpanded: true,
           initialValue: '',
           decoration: const InputDecoration(labelText: 'Jenis transaksi'),
           items: ['', 'opening-stocks', 'transfers', 'adjustments']
@@ -177,19 +179,30 @@ class _TransactionHistoryState extends State<TransactionHistory> {
         Text(_error.toString()),
         OutlinedButton(onPressed: _load, child: const Text('Coba lagi')),
       ] else ...[
-        if (_rows.isEmpty) const Text('Belum ada transaksi.'),
+        if (_rows.isEmpty)
+          if (widget.compact)
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    Icon(Icons.receipt_long_outlined),
+                    SizedBox(height: 12),
+                    Text('Belum ada transaksi.'),
+                    SizedBox(height: 4),
+                    Text('Transaksi yang sudah disimpan akan muncul di sini.'),
+                  ],
+                ),
+              ),
+            )
+          else
+            const Text('Belum ada transaksi.'),
         for (final row in _rows)
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: Card(
-              child: ListTile(
-                title: Text(
-                  '${row['number']} • ${transactionLabel(row['kind'] as String)}',
-                ),
-                subtitle: Text(
-                  '${row['location']}\n${localTransactionTime(row['created_at'])}\n${row['item_count'] ?? 1} jenis barang\n${row['notes'] ?? ''}',
-                ),
-                trailing: const Icon(Icons.chevron_right),
+              child: _DashboardTransaction(
+                row: row,
                 onTap: () => Navigator.push<void>(
                   context,
                   MaterialPageRoute(
@@ -219,11 +232,7 @@ class _TransactionHistoryState extends State<TransactionHistory> {
                     },
               icon: const Icon(Icons.chevron_left),
             ),
-          Text(
-            widget.compact
-                ? 'Aktivitas terbaru'
-                : 'Halaman $_page • $_total dokumen',
-          ),
+          if (!widget.compact) Text('Halaman $_page • $_total dokumen'),
           IconButton(
             tooltip: 'Muat ulang',
             onPressed: _loading ? null : _load,
@@ -244,6 +253,106 @@ class _TransactionHistoryState extends State<TransactionHistory> {
       ),
     ],
   );
+}
+
+class _DashboardTransaction extends StatelessWidget {
+  const _DashboardTransaction({required this.row, required this.onTap});
+
+  final Map<String, dynamic> row;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final kind = row['kind'] as String;
+    final label = kind == 'adjustments'
+        ? 'Penyesuaian stok'
+        : transactionLabel(kind);
+    final icon = switch (kind) {
+      'transfers' => Icons.swap_horiz,
+      'opening-stocks' => Icons.add_box_outlined,
+      _ => Icons.tune,
+    };
+    final notes = (row['notes'] as String? ?? '').trim();
+    final accent = kind == 'transfers'
+        ? const Color(0xFF245BA8)
+        : kind == 'opening-stocks'
+        ? const Color(0xFF176B58)
+        : const Color(0xFF9B641A);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: 0.09),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, size: 20, color: accent),
+                ),
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.labelLarge
+                      ?.copyWith(color: accent, fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              '${row['number']}',
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${row['location']}',
+              style: const TextStyle(color: Color(0xFF44564E)),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 16,
+              runSpacing: 6,
+              children: [
+                Text(
+                  localTransactionTime(row['created_at']),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF64756E),
+                  ),
+                ),
+                Text(
+                  '${row['item_count'] ?? 1} jenis barang',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF64756E),
+                  ),
+                ),
+              ],
+            ),
+            if (notes.isNotEmpty) ...[const SizedBox(height: 12), Text(notes)],
+            const SizedBox(height: 10),
+            const Wrap(
+              spacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text('Lihat rincian'),
+                Icon(Icons.arrow_forward, size: 16),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class TransactionDetail extends StatefulWidget {
@@ -297,13 +406,13 @@ class _TransactionDetailState extends State<TransactionDetail> {
           ] else if (_data == null)
             const Center(child: CircularProgressIndicator())
           else ...[
-            Text(
-              '${_data!['transfer_number'] ?? _data!['opening_number'] ?? _data!['adjustment_number']}',
-              style: Theme.of(context).textTheme.headlineSmall,
+            StockPanel(
+              title: transactionLabel(widget.kind),
+              value:
+                  '${_data!['transfer_number'] ?? _data!['opening_number'] ?? _data!['adjustment_number']}',
+              caption: localTransactionTime(_data!['created_at']),
+              icon: Icons.receipt_long_outlined,
             ),
-            Text(transactionLabel(widget.kind)),
-            const SizedBox(height: 8),
-            Text(localTransactionTime(_data!['created_at'])),
             const Align(
               alignment: Alignment.centerLeft,
               child: Chip(

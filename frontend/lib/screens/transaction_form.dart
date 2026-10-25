@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../models/master.dart';
 import '../services/inventory_api.dart';
 import 'transaction_history.dart';
+import '../widgets/app_style.dart';
 import '../widgets/stock_movement.dart';
 
 class TransactionLine {
@@ -423,15 +424,20 @@ class _TransactionFormState extends State<TransactionForm> {
                 child: ListView(
                   padding: const EdgeInsets.all(20),
                   children: [
-                    Text(
-                      _transfer
-                          ? 'Pindahkan stok tanpa kehilangan jejak.'
+                    PageHeading(
+                      eyebrow: 'Transaksi / Baru',
+                      title: _transfer
+                          ? 'Transfer stok'
                           : _adjustment
-                          ? 'Sesuaikan stok dengan alasan yang jelas.'
-                          : 'Mulai dengan saldo yang tepat.',
-                      style: Theme.of(context).textTheme.titleLarge,
+                          ? 'Penyesuaian stok'
+                          : 'Stok awal',
+                      description: _transfer
+                          ? 'Pilih gudang asal, tujuan, dan barang yang dipindahkan.'
+                          : _adjustment
+                          ? 'Pilih perubahan stok dan tulis alasannya.'
+                          : 'Catat jumlah pertama barang di gudang.',
                     ),
-                    const SizedBox(height: 16),
+                    const SectionLabel('Lokasi & jenis transaksi'),
                     if (_warehouses.isEmpty || _items.isEmpty) ...[
                       const Text('Barang dan gudang aktif diperlukan.'),
                       OutlinedButton(
@@ -460,9 +466,10 @@ class _TransactionFormState extends State<TransactionForm> {
                     ],
                     if (_adjustment) ...[
                       DropdownButtonFormField<String>(
+                        isExpanded: true,
                         initialValue: _direction,
                         decoration: const InputDecoration(
-                          labelText: 'Jenis balancing',
+                          labelText: 'Jenis penyesuaian',
                         ),
                         items: const [
                           DropdownMenuItem(
@@ -483,6 +490,7 @@ class _TransactionFormState extends State<TransactionForm> {
                       ),
                       const SizedBox(height: 16),
                     ],
+                    const SectionLabel('Barang & jumlah'),
                     for (final line in _lines)
                       Padding(
                         key: ObjectKey(line),
@@ -544,6 +552,7 @@ class _TransactionFormState extends State<TransactionForm> {
                         label: const Text('Tambah barang'),
                       ),
                     const SizedBox(height: 16),
+                    const SectionLabel('Catatan transaksi'),
                     TextFormField(
                       controller: _notes,
                       enabled: !_busy && !_uncertain,
@@ -557,7 +566,7 @@ class _TransactionFormState extends State<TransactionForm> {
                       validator: (v) =>
                           (v ?? '').trim().runes.length > 500 ||
                               (_adjustment && (v ?? '').trim().isEmpty)
-                          ? 'Isi keterangan maksimal 500 karakter; balancing wajib diisi.'
+                          ? 'Isi maksimal 500 karakter. Alasan penyesuaian wajib diisi.'
                           : null,
                     ),
                     if (_error != null)
@@ -572,6 +581,7 @@ class _TransactionFormState extends State<TransactionForm> {
                       ),
                     if (_preview != null) ...[
                       const SizedBox(height: 16),
+                      const SectionLabel('Pratinjau perubahan stok'),
                       ItemStockPreview(
                         changes: (_preview!['changes'] as List)
                             .cast<Map<String, dynamic>>(),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/master.dart';
 import '../services/inventory_api.dart';
+import '../widgets/app_style.dart';
 
 class MasterEditor extends StatefulWidget {
   const MasterEditor({
@@ -162,8 +163,15 @@ class _MasterEditorState extends State<MasterEditor> {
         child: Form(
           key: _form,
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             children: [
+              PageHeading(
+                eyebrow: 'Data / ${_items ? 'Barang' : 'Gudang'}',
+                title: widget.master == null ? 'Data baru' : 'Ubah data',
+                description: widget.master == null
+                    ? 'Lengkapi informasi sebelum menyimpan.'
+                    : 'Kode${_items ? ' dan satuan' : ''} tetap; nama dan status dapat diubah.',
+              ),
               _field(
                 'Kode',
                 'code',
@@ -180,17 +188,23 @@ class _MasterEditorState extends State<MasterEditor> {
                   20,
                   immutable: widget.master != null,
                 ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(_active ? 'Aktif' : 'Nonaktif'),
-                subtitle: const Text(
-                  'Penonaktifan hanya jika seluruh saldo nol.',
+              Card(
+                child: SwitchListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  title: Text(_active ? 'Aktif' : 'Nonaktif'),
+                  subtitle: const Text(
+                    'Penonaktifan hanya jika seluruh saldo nol.',
+                  ),
+                  value: _active,
+                  onChanged: _busy
+                      ? null
+                      : (value) => setState(() => _active = value),
                 ),
-                value: _active,
-                onChanged: _busy
-                    ? null
-                    : (value) => setState(() => _active = value),
               ),
+              const SizedBox(height: 16),
               if (_error != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16),
