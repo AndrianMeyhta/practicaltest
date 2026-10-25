@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'widgets/connection_status.dart';
+import 'screens/inventory_page.dart';
 
 class MutasiStokApp extends StatelessWidget {
   const MutasiStokApp({super.key, this.checkHealth});
@@ -14,6 +15,14 @@ class MutasiStokApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF176B58)),
         useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFFF7F9FB),
+        cardTheme: CardThemeData(
+          color: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+        ),
       ),
       home: WelcomePage(checkHealth: checkHealth),
     );
@@ -44,10 +53,20 @@ class WelcomePage extends StatelessWidget {
               const Text('Pengelolaan stok profil dan aksesori UPVC.'),
               const SizedBox(height: 24),
               ConnectionStatus(checkHealth: checkHealth),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const InventoryPage(),
+                  ),
+                ),
+                icon: const Icon(Icons.inventory_2_outlined),
+                label: const Text('Lihat stok gudang'),
+              ),
               const SizedBox(height: 24),
               const Text(
                 'Aplikasi sedang dalam tahap pengembangan. '
-                'Fitur barang, gudang, dan mutasi belum tersedia.',
+                'Fitur pengelolaan master dan transaksi mutasi belum tersedia.',
               ),
             ],
           ),

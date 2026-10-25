@@ -4,7 +4,7 @@ Aplikasi Android untuk pencatatan perpindahan profil dan aksesori UPVC antar gud
 
 ## Status
 
-Express menyediakan connection pool MySQL dan endpoint health. Flutter memeriksa backend/database melalui HTTP, dengan loading, timeout, error, dan retry. Fitur master, stok awal, mutasi, serta kartu stok belum diimplementasikan.
+Express menyediakan koneksi MySQL, migration, seed UPVC, serta API baca gudang dan saldo. Flutter menampilkan status koneksi dan stok per gudang dengan pagination, loading, error, dan retry. CRUD master, input stok awal melalui UI, mutasi, dan kartu stok belum diimplementasikan.
 
 ## Environment terverifikasi
 
@@ -40,16 +40,33 @@ Respons: `{"data":{"status":"ok"}}`. Endpoint ini hanya memeriksa proses HTTP, b
 
 ### MySQL
 
-Aktifkan MySQL 8 dan sediakan database aplikasi dengan charset `utf8mb4`. Gunakan akun aplikasi tersendiri, bukan akun administrator. Tahap health hanya menjalankan `SELECT 1`; migration dan pemberian hak akses operasi stok belum termasuk tahap ini.
+Aktifkan MySQL 8.0.16 atau lebih baru (CHECK constraint harus ditegakkan) dan sediakan database aplikasi dengan charset `utf8mb4`. Environment lokal telah diuji pada MySQL 8.0.30 dengan database `practicaltest`. Akun root tanpa password hanya untuk development lokal; gunakan akun aplikasi dengan hak terbatas sebelum pemakaian di lingkungan lain. Kredensial aktual hanya disimpan di `.env`.
 
 Isi `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, dan `DB_NAME` di `E:\Project\practicaltestv2\backend\.env` sesuai database lokal. Nilai dalam `.env.example` adalah contoh, bukan akun yang otomatis dibuat. Kredensial tidak dimasukkan ke Flutter atau Git.
 
 ```powershell
 Set-Location 'E:\Project\practicaltestv2\backend'
 npm run db:check
+npm run db:migrate
+npm run db:seed
 ```
 
 `GET /api/v1/health` mengembalikan HTTP 200 dengan `{"data":{"status":"ok","database":"connected"}}` setelah query berhasil. Saat koneksi gagal, respons HTTP 503 memakai kode `DATABASE_UNAVAILABLE` dan request ID tanpa membocorkan kredensial atau SQL. Connection pool maksimal 5 koneksi, connect/query timeout 3 detik, dan koneksi health selalu dilepas. Health membuktikan konektivitas, bukan kelengkapan schema atau invariant stok.
+
+Migration membuat tujuh tabel bisnis InnoDB: `items`, `warehouses`, `warehouse_stocks`, `stock_transfers`, `stock_transfer_items`, `opening_stocks`, dan `stock_movements`. Dua tabel teknis mencatat versi migration dan seed. SQL tersedia di `E:\Project\practicaltestv2\backend\migrations`. Foreign key menggunakan RESTRICT; saldo, sumber pergerakan, persamaan saldo, dan pasangan unik dilindungi constraint. Kewajiban tepat dua pergerakan mutasi serta konsistensi snapshot lintas dokumen tetap perlu dijaga service transaksi pada tahap berikutnya.
+
+Migration memakai checksum dan database advisory lock. Menjalankan ulang migration yang sudah diterapkan tidak mengubah schema. DDL MySQL bukan transaksi lintas statement: jika gagal, status `running` dipertahankan dan eksekusi berikutnya ditolak sampai kondisi schema diperiksa. Jangan mengubah migration yang sudah diterapkan; tambahkan versi baru. Parser migration saat ini hanya mendukung statement SQL sederhana, bukan stored procedure.
+
+Seed `upvc-v1` hanya menerima database aplikasi kosong. Seluruh master, dokumen stok awal, saldo, pergerakan, dan penanda seed ditulis dalam satu transaksi. Seed ulang yang sudah berhasil tidak mengubah data. Seed menolak database berisi data yang belum memiliki penanda tersebut. Jalankan setup/seed sebelum server digunakan; tidak tersedia reset destruktif otomatis.
+
+Data demo: Utama berisi profil 25 batang, engsel 40 pcs, handle 12 pcs; Cabang berisi profil 3 batang dan engsel 5 pcs. Gudang Baru belum memiliki saldo; API tetap menampilkan barang aktif dengan quantity nol. Ada lima dokumen AWL dan lima pergerakan OPENING, tanpa mutasi historis. Profil adalah batang utuh 6 meter, bukan satuan meter.
+
+API baca awal:
+- `GET /api/v1/warehouses?page=1&limit=20`: gudang diurutkan berdasarkan ID.
+- `GET /api/v1/stocks?warehouse_id=1&page=1&limit=20&search=UPVC`: saldo barang per gudang.
+- Respons daftar memakai `data` dan `meta` (`page`, `limit`, `total`), limit maksimal 100. Filter aktif gudang, CRUD, serta dokumen/kartu stok menyusul.
+
+Pengujian MySQL nyata: `npm run test:database`. Perintah ini membutuhkan izin membuat database sementara bernama `inventory_test_*`, kemudian menghapus hanya database yang dibuat proses pengujian. Database aplikasi tidak direset. Cakupan: migration/seed ulang, constraint dasar, rollback stok awal, rekonsiliasi, health, pagination, stok nol, dan validasi query. Pengujian konkurensi mutasi belum termasuk.
 
 Pengujian:
 
@@ -94,8 +111,8 @@ ID emulator disesuaikan dengan hasil `flutter devices`. Untuk perangkat USB, gun
 - Pemeriksaan sintaks backend: lulus.
 - Pengujian backend: 5 test lulus. Kasus health sukses dan gagal menggunakan dependency database uji, bukan bukti koneksi sukses ke MySQL nyata.
 - `flutter analyze`: tidak ada masalah.
-- `flutter test`: 10 test lulus, termasuk respons API, timeout, error, retry, dan layar kecil dengan pembesaran teks.
+- `flutter test`: 12 test lulus, termasuk respons API, timeout, error, retry, stok UPVC, dan layar kecil dengan pembesaran teks.
 - Build APK debug: berhasil. Gradle menampilkan peringatan native access dari JDK, tidak menggagalkan build.
-- APK dipasang dan dijalankan di emulator Android. Request ke backend melalui `10.0.2.2` berhasil; tampilan menunjukkan backend terhubung tetapi database belum tersedia.
-- Pemeriksaan MySQL nyata terakhir menghasilkan `ER_ACCESS_DENIED_ERROR` untuk akun contoh. Koneksi sukses masih menunggu konfigurasi akun/database lokal yang valid; tidak ada database atau akun yang dibuat otomatis.
-- Migration, seed, reset database, dan pengujian transaksi belum tersedia.
+- MySQL nyata: migration, seed, serta pengujian database terisolasi lulus.
+- APK dipasang dan dijalankan di emulator Android. Health menunjukkan backend dan MySQL terhubung. Layar stok menampilkan data nyata Utama: 25 batang profil, 40 pcs engsel, dan 12 pcs handle.
+- CRUD master, mutasi, kartu stok, dan pengujian konkurensi belum tersedia.
