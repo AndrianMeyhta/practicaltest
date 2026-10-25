@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import express from 'express';
+import { ApiError, publicError } from './api-error.js';
+import { validateId, validateList, validateMaster } from './master-validation.js';
 
 export function createApp({ database } = {}) {
   const app = express();
@@ -26,47 +28,52 @@ export function createApp({ database } = {}) {
       res.status(503).json({ error: {
         code: 'DATABASE_UNAVAILABLE',
         message: 'Database belum tersedia. Silakan coba lagi.',
+        details: [],
         request_id: req.requestId,
       } });
     }
   });
-  function pagination(req) {
-    const page = req.query.page ?? '1';
-    const limit = req.query.limit ?? '20';
-    if (![page, limit].every((v) => typeof v === 'string' && /^[1-9]\d*$/.test(v)) ||
-      !Number.isSafeInteger(Number(page)) || Number(page) > 1000000 || Number(limit) > 100) return null;
-    return { page: Number(page), limit: Number(limit) };
+  for (const kind of ['items', 'warehouses']) {
+    const path = `/api/v1/${kind}`;
+    app.get(path, async (req, res) => {
+      res.json(await database[kind].list(validateList(req.query, kind)));
+    });
+    app.post(path, async (req, res) => {
+      const body = validateMaster(req.body, kind);
+      res.status(201).json({ data: await database[kind].create(body) });
+    });
+    app.patch(`${path}/:id`, async (req, res) => {
+      const id = validateId(req.params.id);
+      const body = validateMaster(req.body, kind, true);
+      res.json({ data: await database[kind].update(id, body) });
+    });
+    app.delete(`${path}/:id`, async (req, res) => {
+      const id = validateId(req.params.id);
+      await database[kind].remove(id);
+      res.status(204).end();
+    });
   }
-  app.get(['/api/v1/warehouses', '/api/v1/stocks'], async (req, res, next) => {
-    const paging = pagination(req);
-    const stocks = req.path.endsWith('/stocks');
-    const warehouseId = Number(req.query.warehouse_id);
-    if (!paging || (stocks && (!/^[1-9]\d*$/.test(req.query.warehouse_id ?? '') || !Number.isSafeInteger(warehouseId))) ||
-      (req.query.search !== undefined && (typeof req.query.search !== 'string' || req.query.search.length > 100))) {
-      return res.status(400).json({ error: { code: 'INVALID_QUERY', message: 'Parameter daftar tidak valid.', request_id: req.requestId } });
-    }
-    try {
-      const result = stocks
-        ? await database.listStocks({ ...paging, warehouseId, search: req.query.search ?? '' })
-        : await database.listWarehouses(paging);
-      if (!result) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Gudang tidak ditemukan.', request_id: req.requestId } });
-      res.json(result);
-    } catch (error) { next(error); }
+  app.get('/api/v1/stocks', async (req, res) => {
+    const result = await database.listStocks(validateList(req.query, 'stocks'));
+    if (!result) throw new ApiError(404, 'NOT_FOUND', 'Gudang tidak ditemukan.');
+    res.json(result);
   });
   app.use((req, res) => {
     res.status(404).json({ error: {
-      code: 'NOT_FOUND', message: 'Endpoint tidak ditemukan.', request_id: req.requestId,
+      code: 'NOT_FOUND', message: 'Endpoint tidak ditemukan.', details: [], request_id: req.requestId,
     } });
   });
   app.use((error, req, res, next) => {
     if (res.headersSent) return next(error);
     const invalidJson = error.type === 'entity.parse.failed';
     const tooLarge = error.type === 'entity.too.large';
-    const status = invalidJson ? 400 : tooLarge ? 413 : 500;
-    if (status === 500) console.error({ requestId: req.requestId, error });
-    res.status(status).json({ error: {
-      code: invalidJson ? 'INVALID_JSON' : tooLarge ? 'PAYLOAD_TOO_LARGE' : 'INTERNAL_ERROR',
-      message: invalidJson ? 'JSON tidak valid.' : tooLarge ? 'Payload terlalu besar.' : 'Terjadi kesalahan internal.',
+    const safe = invalidJson ? new ApiError(400, 'INVALID_JSON', 'JSON tidak valid.')
+      : tooLarge ? new ApiError(413, 'PAYLOAD_TOO_LARGE', 'Payload terlalu besar.') : publicError(error);
+    if (safe.status >= 500) console.error({ requestId: req.requestId, code: error.code ?? safe.code });
+    res.status(safe.status).json({ error: {
+      code: safe.code,
+      message: safe.message,
+      details: safe.details,
       request_id: req.requestId,
     } });
   });

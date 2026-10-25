@@ -4,7 +4,7 @@ Aplikasi Android untuk pencatatan perpindahan profil dan aksesori UPVC antar gud
 
 ## Status
 
-Express menyediakan koneksi MySQL, migration, seed UPVC, serta API baca gudang dan saldo. Flutter menampilkan status koneksi dan stok per gudang dengan pagination, loading, error, dan retry. CRUD master, input stok awal melalui UI, mutasi, dan kartu stok belum diimplementasikan.
+Express menyediakan koneksi MySQL, migration, seed UPVC, API saldo, dan CRUD master barang/gudang. Flutter menyediakan daftar, tambah, ubah nama/status, dan hapus bersyarat master, serta stok per gudang. Input stok awal melalui UI, mutasi, dan kartu stok belum diimplementasikan.
 
 ## Environment terverifikasi
 
@@ -64,7 +64,7 @@ Data demo: Utama berisi profil 25 batang, engsel 40 pcs, handle 12 pcs; Cabang b
 API baca awal:
 - `GET /api/v1/warehouses?page=1&limit=20`: gudang diurutkan berdasarkan ID.
 - `GET /api/v1/stocks?warehouse_id=1&page=1&limit=20&search=UPVC`: saldo barang per gudang.
-- Respons daftar memakai `data` dan `meta` (`page`, `limit`, `total`), limit maksimal 100. Filter aktif gudang, CRUD, serta dokumen/kartu stok menyusul.
+- Respons daftar memakai `data` dan `meta` (`page`, `limit`, `total`), limit maksimal 100. Filter aktif dan CRUD master tersedia; dokumen/kartu stok menyusul.
 
 Pengujian MySQL nyata: `npm run test:database`. Perintah ini membutuhkan izin membuat database sementara bernama `inventory_test_*`, kemudian menghapus hanya database yang dibuat proses pengujian. Database aplikasi tidak direset. Cakupan: migration/seed ulang, constraint dasar, rollback stok awal, rekonsiliasi, health, pagination, stok nol, dan validasi query. Pengujian konkurensi mutasi belum termasuk.
 
@@ -109,10 +109,39 @@ ID emulator disesuaikan dengan hasil `flutter devices`. Untuk perangkat USB, gun
 ## Hasil verifikasi konektivitas
 
 - Pemeriksaan sintaks backend: lulus.
-- Pengujian backend: 5 test lulus. Kasus health sukses dan gagal menggunakan dependency database uji, bukan bukti koneksi sukses ke MySQL nyata.
+- Pengujian backend: 8 test lulus. Kasus health sukses dan gagal menggunakan dependency database uji, bukan bukti koneksi sukses ke MySQL nyata.
 - `flutter analyze`: tidak ada masalah.
-- `flutter test`: 12 test lulus, termasuk respons API, timeout, error, retry, stok UPVC, dan layar kecil dengan pembesaran teks.
+- `flutter test`: 16 test lulus, termasuk validasi/loading form master, error field dengan isian tetap tersimpan, retry daftar, create/edit/delete gudang melalui mock HTTP, timeout tulis, stok UPVC, dan layar kecil dengan pembesaran teks.
 - Build APK debug: berhasil. Gradle menampilkan peringatan native access dari JDK, tidak menggagalkan build.
 - MySQL nyata: migration, seed, serta pengujian database terisolasi lulus.
 - APK dipasang dan dijalankan di emulator Android. Health menunjukkan backend dan MySQL terhubung. Layar stok menampilkan data nyata Utama: 25 batang profil, 40 pcs engsel, dan 12 pcs handle.
-- CRUD master, mutasi, kartu stok, dan pengujian konkurensi belum tersedia.
+- Verifikasi tahap master: APK debug dipasang pada emulator `emulator-5554`; status menunjukkan backend/MySQL terhubung, daftar barang menampilkan tiga SKU nyata, dan daftar gudang menampilkan Utama, Cabang, serta Baru. Alur tulis CRUD pada emulator belum diverifikasi penuh; pengujian HTTP memakai MySQL terisolasi dan pengujian widget memakai mock HTTP.
+- Mutasi dan kartu stok belum tersedia. Konkurensi master dengan helper stok awal diuji; konkurensi dengan service mutasi belum tersedia.
+
+## Kontrak master
+
+Kedua resource `/api/v1/items` dan `/api/v1/warehouses` menyediakan GET daftar, POST, PATCH `/:id`, dan DELETE `/:id`. Sukses menggunakan `data`, daftar menyertakan `meta`, dan DELETE mengembalikan 204 tanpa body.
+
+- POST: `code`, `name`, `is_active` opsional (boolean, default `true`); barang juga wajib `unit`.
+- PATCH: hanya `name` dan/atau `is_active`. PATCH kosong, field tak dikenal, atau penyertaan kode/satuan immutable ditolak 422.
+- Kode di-trim dan uppercase, 1–30 karakter ASCII huruf/angka/underscore/tanda hubung. Nama 1–100 dan satuan 1–20 karakter Unicode setelah trim.
+- Query: `page` default 1 (maksimal 1.000.000), `limit` default 20 (maksimal 100), `active=true` atau `active=false`. Tanpa `active` menampilkan semua status. Barang mendukung `search` kode/nama maksimal 100 karakter setelah trim; pencarian kosong berarti tanpa filter dan wildcard diperlakukan literal. Parameter tidak dikenal/berulang ditolak.
+- `is_active` respons master berupa boolean. Stok tetap dapat membaca gudang nonaktif; histori tidak dihapus.
+
+Error selalu memiliki `code`, `message`, `details`, dan `request_id`. Detail field berbentuk `{"field":"name","message":"..."}`.
+
+| HTTP | Kode |
+|---|---|
+| 400 | `INVALID_QUERY`, `INVALID_ID`, `INVALID_JSON` |
+| 404 | `NOT_FOUND` |
+| 409 | `DUPLICATE_CODE`, `MASTER_HAS_STOCK`, `MASTER_IN_USE` |
+| 413 | `PAYLOAD_TOO_LARGE` |
+| 422 | `VALIDATION_ERROR` |
+| 500 | `INTERNAL_ERROR` |
+| 503 | `DATABASE_UNAVAILABLE`, `TRANSACTION_RETRY_REQUIRED` |
+
+Transaksi mengunci master target sebelum memeriksa saldo/referensi dengan locking read. Jalur barang tidak mengambil lock gudang setelah barang; helper stok awal tetap mengunci gudang → barang → saldo. Hapus memeriksa histori terlebih dahulu, kemudian saldo, membersihkan saldo nol dan menghapus master secara atomik. FK RESTRICT dan unique constraint tetap menjadi perlindungan akhir. Tidak ada migration lama yang diubah atau cascade histori. Koneksi selalu dilepas dan kegagalan di-rollback.
+
+`npm run test:database` juga memeriksa CRUD, kode duplikat, filter, penolakan histori, saldo nol, fault injection melalui trigger database uji, create bersamaan, serta konflik hapus/nonaktif ketika helper stok awal memegang lock. Urutan master selesai dahulu diperiksa secara serial. Ini bukan bukti seluruh kemungkinan interleaving atau pengujian service mutasi.
+
+Flutter tidak mengirim ulang operasi tulis secara otomatis. Timeout atau gangguan respons tulis dianggap hasil belum diketahui; pengguna harus memeriksa daftar terbaru sebelum mengirim ulang. Master belum memiliki idempotency key atau deteksi stale edit berbasis versi. Dua edit nama bersamaan mengikuti update terakhir yang berhasil.

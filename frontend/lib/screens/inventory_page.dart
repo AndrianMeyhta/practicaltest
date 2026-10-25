@@ -1,9 +1,8 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-import '../services/health_api.dart';
+import '../services/inventory_api.dart';
+import 'masters_page.dart';
 
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key, this.client});
@@ -13,11 +12,7 @@ class InventoryPage extends StatefulWidget {
 }
 
 class _InventoryPageState extends State<InventoryPage> {
-  late final http.Client _client;
-  final _base = const String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:3000/api/v1',
-  );
+  late final InventoryApi _api;
   List<Map<String, dynamic>> _warehouses = [], _stocks = [];
   int? _warehouse;
   int _page = 1, _total = 0;
@@ -27,24 +22,19 @@ class _InventoryPageState extends State<InventoryPage> {
   @override
   void initState() {
     super.initState();
-    _client = widget.client ?? http.Client();
+    _api = InventoryApi(client: widget.client);
     _load();
   }
 
   @override
   void dispose() {
-    _client.close();
+    _api.close();
     super.dispose();
   }
 
   Future<Map<String, dynamic>> _get(String path) async {
-    final response = await _client
-        .get(Uri.parse('${_base.replaceFirst(RegExp(r'/+$'), '')}$path'))
-        .timeout(const Duration(seconds: 8));
-    if (response.statusCode != 200) {
-      throw const ApiException('Data belum dapat dimuat. Silakan coba lagi.');
-    }
-    return jsonDecode(response.body) as Map<String, dynamic>;
+    final uri = Uri.parse(path);
+    return _api.request('GET', uri.path, query: uri.queryParameters);
   }
 
   Future<void> _load() async {
@@ -54,7 +44,7 @@ class _InventoryPageState extends State<InventoryPage> {
       _stocks = [];
     });
     try {
-      if (_warehouses.isEmpty) {
+      {
         var page = 1;
         final warehouses = <Map<String, dynamic>>[];
         while (true) {
@@ -66,7 +56,12 @@ class _InventoryPageState extends State<InventoryPage> {
           page++;
         }
         _warehouses = warehouses;
-        if (_warehouses.isNotEmpty) _warehouse = _warehouses.first['id'] as int;
+        if (!_warehouses.any((w) => w['id'] == _warehouse)) {
+          _warehouse = _warehouses.isEmpty
+              ? null
+              : _warehouses.first['id'] as int;
+          _page = 1;
+        }
       }
       if (_warehouse != null) {
         final response = await _get(
@@ -84,7 +79,25 @@ class _InventoryPageState extends State<InventoryPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Stok gudang')),
+    appBar: AppBar(
+      title: const Text('Stok gudang'),
+      actions: [
+        PopupMenuButton<String>(
+          tooltip: 'Kelola master',
+          onSelected: (kind) async {
+            await Navigator.push<void>(
+              context,
+              MaterialPageRoute(builder: (_) => MastersPage(kind: kind)),
+            );
+            if (mounted) await _load();
+          },
+          itemBuilder: (_) => const [
+            PopupMenuItem(value: 'items', child: Text('Master barang')),
+            PopupMenuItem(value: 'warehouses', child: Text('Master gudang')),
+          ],
+        ),
+      ],
+    ),
     body: ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -100,6 +113,7 @@ class _InventoryPageState extends State<InventoryPage> {
         const SizedBox(height: 24),
         if (_warehouses.isNotEmpty)
           DropdownButtonFormField<int>(
+            key: ValueKey(_warehouse),
             initialValue: _warehouse,
             isExpanded: true,
             decoration: const InputDecoration(

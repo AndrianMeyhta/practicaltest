@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'widgets/connection_status.dart';
 import 'screens/inventory_page.dart';
+import 'screens/masters_page.dart';
 
 class MutasiStokApp extends StatelessWidget {
   const MutasiStokApp({super.key, this.checkHealth});
@@ -20,8 +21,14 @@ class MutasiStokApp extends StatelessWidget {
           color: Colors.white,
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(20),
           ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.all(16),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
         ),
       ),
       home: WelcomePage(checkHealth: checkHealth),
@@ -64,9 +71,28 @@ class WelcomePage extends StatelessWidget {
                 label: const Text('Lihat stok gudang'),
               ),
               const SizedBox(height: 24),
+              for (final kind in ['items', 'warehouses'])
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => MastersPage(kind: kind),
+                      ),
+                    ),
+                    icon: Icon(
+                      kind == 'items'
+                          ? Icons.inventory_2_outlined
+                          : Icons.warehouse_outlined,
+                    ),
+                    label: Text(
+                      kind == 'items' ? 'Master barang' : 'Master gudang',
+                    ),
+                  ),
+                ),
               const Text(
                 'Aplikasi sedang dalam tahap pengembangan. '
-                'Fitur pengelolaan master dan transaksi mutasi belum tersedia.',
+                'Transaksi mutasi belum tersedia.',
               ),
             ],
           ),
