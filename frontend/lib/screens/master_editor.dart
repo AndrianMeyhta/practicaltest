@@ -131,6 +131,9 @@ class _MasterEditorState extends State<MasterEditor> {
       enabled: !_busy,
       decoration: InputDecoration(
         labelText: label,
+        filled: immutable,
+        fillColor: immutable ? const Color(0xFFDEE3E1) : null,
+        suffixIcon: immutable ? const Icon(Icons.lock_outline) : null,
         errorText: _error?.fields[key],
         helperText: immutable ? 'Tidak dapat diubah setelah dibuat.' : null,
       ),

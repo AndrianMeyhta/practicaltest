@@ -132,4 +132,29 @@ class InventoryApi {
   Future<void> remove(String kind, int id) async {
     await request('DELETE', '/$kind/$id');
   }
+
+  Future<Map<int, int>> warehouseBalances(int warehouseId) async {
+    final balances = <int, int>{};
+    for (var page = 1; ; page++) {
+      final result = await request(
+        'GET',
+        '/stocks',
+        query: {
+          'warehouse_id': '$warehouseId',
+          'page': '$page',
+          'limit': '100',
+        },
+      );
+      final rows = result['data'] as List;
+      for (final row in rows) {
+        balances[row['item_id'] as int] = row['quantity'] as int;
+      }
+      if (page * 100 >= (result['meta'] as Map)['total']) return balances;
+      if (rows.isEmpty) {
+        throw const InventoryApiException(
+          'Daftar saldo tidak lengkap. Muat ulang stok.',
+        );
+      }
+    }
+  }
 }

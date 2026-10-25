@@ -120,6 +120,8 @@ ID emulator disesuaikan dengan hasil `flutter devices`. Untuk perangkat USB, gun
 
 ## Transaksi stok dan navigasi (SRS 1.3)
 
+Penyempurnaan form transfer: gudang asal/tujuan saling dikecualikan pada dropdown, barang yang sudah dipilih tidak ditawarkan pada baris lain, dan saldo gudang asal dimuat melalui API dengan pagination. Badge saldo positif hijau, saldo nol putih; loading/gagal bukan saldo nol. Baris bawah kartu memuat saldo, input jumlah, serta ikon hapus ketika terdapat minimal dua barang. Layar sempit/teks besar menggunakan susunan adaptif. Field kode/satuan immutable pada edit master berlatar abu-abu dengan ikon kunci. Verifikasi pembaruan ini: analisis Flutter bersih, 18 test lulus, APK debug dibangun dan dipasang pada emulator; pemeriksaan visual manual penuh belum dilakukan.
+
 - Sidebar kiri bernama `mutasi stock`, dibuka melalui tombol menu atau swipe dari tepi kiri. Cek koneksi dipindahkan ke Pengaturan.
 - `POST /api/v1/opening-stocks`: `warehouse_id`, `item_id`, `quantity`, `notes` opsional.
 - `POST /api/v1/transfers`: `source_warehouse_id`, `destination_warehouse_id`, `items` berisi 1–50 objek `item_id`/`quantity`, dan `notes` opsional.

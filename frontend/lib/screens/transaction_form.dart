@@ -30,6 +30,10 @@ class _TransactionFormState extends State<TransactionForm> {
   bool _loading = true, _busy = false, _uncertain = false;
   String? _error, _key, _previewFingerprint;
   Map<String, dynamic>? _preview, _attempt;
+  Map<int, int> _balances = {};
+  bool _stockLoading = false;
+  String? _stockError;
+  int _stockGeneration = 0;
   bool get _transfer => widget.kind == 'transfers';
   bool get _adjustment => widget.kind == 'adjustments';
 
@@ -87,6 +91,134 @@ class _TransactionFormState extends State<TransactionForm> {
     _key = null;
     _error = null;
   });
+  Future<void> _loadBalances() async {
+    _changed();
+    final source = _source;
+    final generation = ++_stockGeneration;
+    setState(() {
+      _balances = {};
+      _stockError = null;
+      _stockLoading = source != null;
+    });
+    if (source == null) return;
+    try {
+      final balances = await widget.api.warehouseBalances(source);
+      if (mounted && generation == _stockGeneration) {
+        setState(() => _balances = balances);
+      }
+    } catch (_) {
+      if (mounted && generation == _stockGeneration) {
+        setState(() => _stockError = 'Stok gagal dimuat.');
+      }
+    } finally {
+      if (mounted && generation == _stockGeneration) {
+        setState(() => _stockLoading = false);
+      }
+    }
+  }
+
+  Widget _quantityRow(TransactionLine line) {
+    final quantity = _balances[line.item?.id];
+    final colors = Theme.of(context).colorScheme;
+    final stock = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Stok tersedia', style: TextStyle(fontSize: 12)),
+        const SizedBox(height: 6),
+        if (_source == null || line.item == null)
+          const Text('Pilih gudang dan barang', style: TextStyle(fontSize: 12))
+        else if (_stockLoading)
+          const Text('Memuat stok…')
+        else if (_stockError != null || quantity == null)
+          TextButton(
+            onPressed: _busy || _uncertain ? null : _loadBalances,
+            child: const Text('Muat ulang stok'),
+          )
+        else
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: quantity > 0 ? colors.primary : Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: quantity > 0 ? colors.primary : colors.outlineVariant,
+              ),
+            ),
+            child: Text(
+              '$quantity ${line.item!.unit}',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: quantity > 0 ? colors.onPrimary : colors.onSurface,
+              ),
+            ),
+          ),
+      ],
+    );
+    final input = TextFormField(
+      controller: line.quantity,
+      enabled: !_busy && !_uncertain,
+      keyboardType: TextInputType.number,
+      decoration: const InputDecoration(labelText: 'Jumlah', errorMaxLines: 3),
+      onChanged: (_) => _changed(),
+      validator: (v) {
+        final n = int.tryParse(v?.trim() ?? '');
+        if (n == null || n < 1 || n > 1000000) {
+          return 'Isi integer 1–1.000.000.';
+        }
+        if ((_transfer || (_adjustment && _direction == 'OUT')) &&
+            quantity != null &&
+            n > quantity) {
+          return 'Melebihi stok tersedia.';
+        }
+        return null;
+      },
+    );
+    final remove = _transfer && _lines.length > 1
+        ? IconButton(
+            tooltip: 'Hapus barang ${_lines.indexOf(line) + 1}',
+            onPressed: _busy || _uncertain
+                ? null
+                : () {
+                    _lines.remove(line);
+                    _changed();
+                    WidgetsBinding.instance.addPostFrameCallback(
+                      (_) => line.quantity.dispose(),
+                    );
+                  },
+            icon: const Icon(Icons.delete_outline),
+          )
+        : const SizedBox.shrink();
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 260 ||
+            MediaQuery.textScalerOf(context).scale(14) > 22) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              stock,
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(child: input),
+                  remove,
+                ],
+              ),
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: stock),
+            const SizedBox(width: 12),
+            Expanded(child: input),
+            remove,
+          ],
+        );
+      },
+    );
+  }
+
   Map<String, dynamic> _payload() => {
     if (_transfer) ...{
       'source_warehouse_id': _source,
@@ -224,10 +356,16 @@ class _TransactionFormState extends State<TransactionForm> {
 
   Widget _warehouse(String label, int? value, ValueChanged<int?> changed) =>
       DropdownButtonFormField<int>(
+        key: ValueKey('$label:$value'),
         initialValue: value,
         isExpanded: true,
         decoration: InputDecoration(labelText: label),
         items: _warehouses
+            .where(
+              (w) =>
+                  !_transfer ||
+                  w.id != (label == 'Gudang tujuan' ? _source : _destination),
+            )
             .map((w) => DropdownMenuItem(value: w.id, child: Text(w.name)))
             .toList(),
         validator: (v) => v == null ? 'Pilih gudang.' : null,
@@ -268,12 +406,17 @@ class _TransactionFormState extends State<TransactionForm> {
                         child: const Text('Muat ulang master'),
                       ),
                     ],
-                    _warehouse(
-                      _transfer ? 'Gudang asal' : 'Gudang',
-                      _source,
-                      (v) => _source = v,
-                    ),
+                    _warehouse(_transfer ? 'Gudang asal' : 'Gudang', _source, (
+                      v,
+                    ) {
+                      _source = v;
+                      _loadBalances();
+                    }),
                     const SizedBox(height: 16),
+                    if (_transfer && _warehouses.length < 2)
+                      const Text(
+                        'Transfer membutuhkan minimal dua gudang aktif.',
+                      ),
                     if (_transfer) ...[
                       _warehouse(
                         'Gudang tujuan',
@@ -309,6 +452,7 @@ class _TransactionFormState extends State<TransactionForm> {
                     ],
                     for (final line in _lines)
                       Padding(
+                        key: ObjectKey(line),
                         padding: const EdgeInsets.only(bottom: 16),
                         child: Card(
                           child: Padding(
@@ -323,6 +467,13 @@ class _TransactionFormState extends State<TransactionForm> {
                                     labelText: 'Barang',
                                   ),
                                   items: _items
+                                      .where(
+                                        (i) => !_lines.any(
+                                          (other) =>
+                                              other != line &&
+                                              other.item?.id == i.id,
+                                        ),
+                                      )
                                       .map(
                                         (i) => DropdownMenuItem(
                                           value: i.id,
@@ -342,32 +493,7 @@ class _TransactionFormState extends State<TransactionForm> {
                                         },
                                 ),
                                 const SizedBox(height: 12),
-                                TextFormField(
-                                  controller: line.quantity,
-                                  enabled: !_busy && !_uncertain,
-                                  keyboardType: TextInputType.number,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Jumlah',
-                                  ),
-                                  onChanged: (_) => _changed(),
-                                  validator: (v) {
-                                    final n = int.tryParse(v?.trim() ?? '');
-                                    return n == null || n < 1 || n > 1000000
-                                        ? 'Isi integer 1–1.000.000.'
-                                        : null;
-                                  },
-                                ),
-                                if (_transfer && _lines.length > 1)
-                                  TextButton(
-                                    onPressed: _busy || _uncertain
-                                        ? null
-                                        : () {
-                                            _lines.remove(line);
-                                            line.quantity.dispose();
-                                            _changed();
-                                          },
-                                    child: const Text('Hapus baris'),
-                                  ),
+                                _quantityRow(line),
                               ],
                             ),
                           ),
