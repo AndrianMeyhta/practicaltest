@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import express from 'express';
 
-export function createApp() {
+export function createApp({ database } = {}) {
   const app = express();
   app.disable('x-powered-by');
   app.use((req, res, next) => {
@@ -14,6 +14,21 @@ export function createApp() {
   // Liveness proses saja; belum memeriksa koneksi database.
   app.get('/api/v1/live', (req, res) => {
     res.json({ data: { status: 'ok' } });
+  });
+  app.get('/api/v1/health', async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    try {
+      if (!database) throw new Error('Database belum dikonfigurasi.');
+      await database.check();
+      res.json({ data: { status: 'ok', database: 'connected' } });
+    } catch (error) {
+      console.error({ requestId: req.requestId, code: error.code ?? 'DATABASE_UNAVAILABLE' });
+      res.status(503).json({ error: {
+        code: 'DATABASE_UNAVAILABLE',
+        message: 'Database belum tersedia. Silakan coba lagi.',
+        request_id: req.requestId,
+      } });
+    }
   });
   app.use((req, res) => {
     res.status(404).json({ error: {
