@@ -371,10 +371,6 @@ class _DashboardSummaryState extends State<DashboardSummary> {
         ),
       );
     }
-<<<<<<< HEAD
-    final units = _data!['units'] as List;
-=======
->>>>>>> 7a82f81 (style: redesain keseluruhan app)
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -411,88 +407,6 @@ class _DashboardSummaryState extends State<DashboardSummary> {
             );
           },
         ),
-<<<<<<< HEAD
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: const Color(0xFF123F36),
-            borderRadius: BorderRadius.circular(24),
-            border: const Border(
-              top: BorderSide(color: Color(0xFFB8D875), width: 4),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Total stok semua gudang',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: const Color(0xFFD6E7DF),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 20),
-              if (units.isEmpty)
-                const Text(
-                  'Belum ada stok tercatat.',
-                  style: TextStyle(color: Colors.white),
-                )
-              else
-                Wrap(
-                  spacing: 32,
-                  runSpacing: 20,
-                  children: [
-                    for (final row in units)
-                      Container(
-                        padding: const EdgeInsets.only(left: 16),
-                        decoration: const BoxDecoration(
-                          border: Border(
-                            left: BorderSide(
-                              color: Color(0xFFB8D875),
-                              width: 3,
-                            ),
-                          ),
-                        ),
-                        child: Text.rich(
-                          TextSpan(
-                            children: [
-                              TextSpan(
-                                text: '${row['quantity']}',
-                                style: const TextStyle(
-                                  fontSize: 40,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: -0.5,
-                                ),
-                              ),
-                              TextSpan(
-                                text: '\n${row['unit']}',
-                                style: const TextStyle(
-                                  color: Color(0xFFB8D875),
-                                ),
-                              ),
-                            ],
-                          ),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              const SizedBox(height: 20),
-              const Divider(color: Color(0xFF396156), height: 1),
-              const SizedBox(height: 12),
-              const Text(
-                'Gabungan stok dari seluruh gudang',
-                style: TextStyle(color: Color(0xFFC3DDD4), fontSize: 13),
-              ),
-            ],
-          ),
-        ),
-=======
->>>>>>> 7a82f81 (style: redesain keseluruhan app)
       ],
     );
   }
